@@ -92,7 +92,7 @@ class AtomBondFeaturizer(_AtomBondFeaturizer):
     _output_directory : Optional[str]
         The path to the directory where all output files created during the feature calculations
         are stored (if requested).
-    _periodic_table : Dict[str, element]
+    _periodic_table : Dict[str, Element]
         A dictionary representing the periodic table with element symbols as keys and mendeleev
         ``element`` objects as values.
     mol_vault : Optional[MolVault]

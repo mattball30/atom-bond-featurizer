@@ -1,5 +1,5 @@
 [project]
-name = "bonafide"
+name = "bonafide-chem"
 version = "0.2.4"
 description = "A Python package for calculating features for atoms and bonds in molecules"
 readme = "README.md"
@@ -11,6 +11,53 @@ authors = [
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+# psi4, xtb, kallisto, Multiwfn, and ALFABET are optional and are not listed here as they are not
+# (compatibly) available from PyPI. The pixi environment below provides all of them except
+# Multiwfn.
+dependencies = [
+    "ase<3.27",
+    "dbstep>=1.1",
+    "dscribe>=2.1",
+    "ipywidgets",
+    "mendeleev>=1.1,<2",
+    "morfeus-ml>=0.8",
+    "numpy>=2",
+    "pandas>=2",
+    "py3Dmol",
+    "pydantic>=2",
+    "rdkit>=2025.3",
+    "scipy",
+]
+
+[project.optional-dependencies]
+qmdesc = ["qmdesc>=1.0.6", "torch>=2.0", "setuptools<81"]
+
+[project.scripts]
+bonafide-check = "bonafide.check_installation:main"
+
+[project.urls]
+Homepage = "https://github.com/MolecularAI/atom-bond-featurizer"
+Documentation = "https://molecularai.github.io/atom-bond-featurizer/"
+Changelog = "https://github.com/MolecularAI/atom-bond-featurizer/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+test = ["pytest", "pytest-mock", "pytest-cov"]
+dev = ["mypy", "ruff==0.15.*", "interrogate", "rstfmt"]
+docs = [
+    "sphinx",
+    "furo",
+    "numpydoc",
+    "sphinx-copybutton",
+    "sphinx-datatables",
+    "sphinxcontrib-bibtex",
+    "sphinxcontrib-jquery",
+    "sphinxcontrib-napoleon",
+]
 
 [build-system]
 requires = ["setuptools"]
@@ -18,3 +65,81 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.package-data]
 bonafide = ["_feature_config.toml", "_feature_info.json", "utils/SMARTS_RX.txt"]
+
+# pixi ############################################################################################
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.dependencies]
+python = "3.12.*"
+# dscribe 2.1.2 is incompatible with ase 3.27+ (TypeError in dscribe.core.System)
+ase = "<3.27"
+dbstep = ">=1.1"
+dscribe = ">=2.1"
+ipywidgets = "*"
+mendeleev = ">=1.1,<2"
+morfeus-ml = ">=0.8"
+numpy = ">=2"
+pandas = ">=2"
+py3dmol = "*"
+pydantic = ">=2"
+rdkit = ">=2025.3"
+scipy = "*"
+# Optional dependencies that are only available from conda-forge
+psi4 = "*"
+dftd3-python = "*"
+xtb = "6.7.1.*"
+# CPU-only PyTorch for qmdesc (avoids the CUDA wheels from PyPI)
+pytorch-cpu = ">=2.0"
+# qmdesc imports pkg_resources, which was removed from setuptools 81
+setuptools = "<81"
+
+[tool.pixi.pypi-dependencies]
+bonafide-chem = { path = ".", editable = true, extras = ["qmdesc"] }
+kallisto = "*"
+
+[tool.pixi.pypi-options]
+# kallisto pins numpy<2 but works with numpy 2 (previously installed with "pip install --no-deps")
+dependency-overrides = { numpy = ">=2" }
+
+[tool.pixi.activation.env]
+BONAFIDE_ALFABET_PYTHON = "$PIXI_PROJECT_ROOT/.pixi/envs/alfabet/bin/python"
+
+[tool.pixi.tasks]
+check = "bonafide-check"
+
+# ALFABET requires Python 3.7 and TensorFlow and therefore lives in a separate environment that
+# BONAFIDE calls through a subprocess
+[tool.pixi.feature.alfabet.dependencies]
+python = "3.7.*"
+rdkit = "*"
+
+[tool.pixi.feature.alfabet.pypi-dependencies]
+tensorflow = "*"
+alfabet = "*"
+
+[tool.pixi.feature.test.tasks]
+test = "pytest tests/"
+test-quick = { cmd = "pytest -s tests/ -m 'not get_fmo_energies_multiwfn and not multiwfn_driver and not attach_electronic_structure_with_multiwfn and not calculate_electronic_structure_with_multiwfn and not miscellaneous'" }
+
+[tool.pixi.feature.dev.tasks]
+mypy = "mypy src/"
+format-check = "ruff format --check src/ tests/"
+
+[tool.pixi.feature.docs.tasks]
+docs = { cmd = "make html", cwd = "docs" }
+
+# Local build of the conda packages in recipe/ (not uploaded anywhere)
+[tool.pixi.feature.build.dependencies]
+rattler-build = "*"
+
+[tool.pixi.feature.build.tasks]
+build-conda = "rattler-build build --recipe-dir recipe --output-dir build/conda -c conda-forge"
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+dev = { features = ["test", "dev", "docs"], solve-group = "default" }
+alfabet = { features = ["alfabet"], no-default-feature = true }
+build = { features = ["build"], no-default-feature = true }

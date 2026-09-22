@@ -2,9 +2,8 @@
 
 Usage
 -----
->>> conda activate bonafide_env
 >>> cd examples
->>> python -u amine_workflow_single.py <XYZ input file path> > workflow.log 2>&1
+>>> pixi run python -u amine_workflow_single.py <XYZ input file path> > workflow.log 2>&1
 """
 
 import argparse

@@ -22,14 +22,24 @@ For any further details, please visit the
 ## Requirements
 
 - Python 3.12
-- Conda (for environment management)
+- [pixi](https://pixi.sh) (for environment management)
 - Key dependencies: alfabet, ase, dbstep, dscribe, kallisto, mendeleev, morfeus-ml, numpy, pandas,
   py3Dmol, qmdesc, rdkit, scipy
 - Optional external programs: Multiwfn, Psi4, xtb
 
-For further details, please see the
-[installation guide](https://molecularai.github.io/atom-bond-featurizer/installation.html) and the
-environment `.yml` files.
+## Installation
+
+```shell
+git clone https://github.com/MolecularAI/atom-bond-featurizer.git
+
+cd atom-bond-featurizer
+pixi install              # BONAFIDE with all dependencies (incl. Psi4, xtb, qmdesc, kallisto)
+pixi install -e alfabet   # optional: separate environment for ALFABET
+pixi run check            # check the installation
+```
+
+Multiwfn must be installed separately. For further details, please see the
+[installation guide](https://molecularai.github.io/atom-bond-featurizer/installation.html).
 
 ## Quick Start
 

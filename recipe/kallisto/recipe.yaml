@@ -1,0 +1,50 @@
+context:
+  name: kallisto
+  version: "1.0.10"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: cf0541129bfebb5a778f1ac1edc8f7d2c4788490f41aa239f7b8e9d65b0a6778
+
+build:
+  number: 0
+  noarch: python
+  script:
+    # kallisto restricts numpy to versions below 2 but works with numpy 2
+    - sed -i "s/'numpy>=1.19.0,<2.0.0'/'numpy>=1.19.0'/" setup.py
+    # Build with the setup.py file instead of the outdated poetry build backend
+    - rm pyproject.toml
+    - ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+  python:
+    entry_points:
+      - kallisto = kallisto.console:cli
+
+requirements:
+  host:
+    - python 3.10.*
+    - pip
+    - setuptools
+  run:
+    - python >=3.10,<3.13
+    - click >=8.0.0,<9.0.0
+    - numpy >=1.19.0
+    - scipy >=1.10.0,<2.0.0
+
+tests:
+  - python:
+      imports:
+        - kallisto
+      pip_check: true
+      python_version: 3.12.*
+  - script:
+      - kallisto --help
+
+about:
+  homepage: https://github.com/AstraZeneca/kallisto
+  summary: Efficient calculation of atomic features for QSAR modelling
+  license: Apache-2.0
+  license_file: LICENSE

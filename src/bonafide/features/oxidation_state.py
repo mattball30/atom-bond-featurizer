@@ -12,7 +12,7 @@ from bonafide.utils.helper_functions import get_function_or_method_name
 from bonafide.utils.helper_functions_chemistry import from_periodic_table
 
 if TYPE_CHECKING:
-    from mendeleev import element
+    from mendeleev.models import Element
 
 
 class Bonafide2DAtomOxidationState(BaseFeaturizer):
@@ -24,7 +24,7 @@ class Bonafide2DAtomOxidationState(BaseFeaturizer):
     under "bonafide.oxidation_state" in the _feature_config.toml file.
     """
 
-    _periodic_table: Dict[str, element]
+    _periodic_table: Dict[str, Element]
     en_scale: str
 
     def __init__(self) -> None:

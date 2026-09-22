@@ -2,9 +2,8 @@
 
 Usage
 -----
->>> conda activate bonafide_env
 >>> cd examples
->>> python -u all_3D_features.py > all_3D_features.out &
+>>> pixi run python -u all_3D_features.py > all_3D_features.out &
 
 Notes
 -----

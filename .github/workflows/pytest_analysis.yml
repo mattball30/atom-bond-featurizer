@@ -27,41 +27,13 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
-    - name: Set up Miniconda
-      uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167  # v3
+    - name: Set up pixi
+      uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e  # v0.10.2
       with:
-        python-version: "3.12"
-        activate-environment: bonafide_env_dev
-        channels: conda-forge
-        conda-solver: libmamba
-
-    - name: Get Date
-      id: get-date
-      shell: bash
-      run: echo "today=$(date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
-
-    - name: Cache conda environment
-      id: cache-conda
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
-      env:
-        CACHE_NUMBER: 0
-      with:
-        path: ${{ env.CONDA }}/envs
-        key: conda-${{ runner.os }}-${{ runner.arch }}-${{ steps.get-date.outputs.today }}-${{ hashFiles('bonafide_env_dev.yml') }}-${{ env.CACHE_NUMBER }}
-
-    - name: Update conda environment
-      if: steps.cache-conda.outputs.cache-hit != 'true'
-      shell: bash -el {0}
-      run: conda env update -n bonafide_env_dev -f bonafide_env_dev.yml
-
-    - name: Install bonafide
-      shell: bash -el {0}
-      run: |
-        pip install kallisto --no-deps
-        pip install --no-deps .
-        python post_install_setup.py
+        pixi-version: v0.80.0
+        environments: dev
+        cache: true
+        locked: true
 
     - name: Run pytest
-      shell: bash -el {0}
-      run: |
-        pytest -s tests/ -m "not get_fmo_energies_multiwfn and not multiwfn_driver and not attach_electronic_structure_with_multiwfn and not calculate_electronic_structure_with_multiwfn and not miscellaneous"
+      run: pixi run -e dev test-quick

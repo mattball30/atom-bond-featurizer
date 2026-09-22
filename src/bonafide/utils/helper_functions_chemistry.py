@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from mendeleev import element
+from mendeleev.models import Element
 from rdkit import Chem
 from rdkit.Chem import rdDetermineBonds
 
@@ -482,15 +483,15 @@ def get_charge_from_mol_object(mol: Chem.rdchem.Mol) -> int:
 
 
 def from_periodic_table(
-    periodic_table: Dict[str, element], element_symbol: str
-) -> Tuple[Dict[str, element], element]:
+    periodic_table: Dict[str, Element], element_symbol: str
+) -> Tuple[Dict[str, Element], Element]:
     """Retrieve element data from the periodic table or create a new entry if it doesn't exist.
 
     The data is retrieved from the ``mendeleev`` library.
 
     Parameters
     ----------
-    periodic_table : Dict[str, element]
+    periodic_table : Dict[str, Element]
         A dictionary representing the periodic table with element symbols as keys and mendeleev
         ``element`` objects as values.
     element_symbol : str
@@ -498,13 +499,13 @@ def from_periodic_table(
 
     Returns
     -------
-    Tuple[Dict[str, element], element]
+    Tuple[Dict[str, Element], Element]
         A tuple containing the updated periodic table and the requested element data.
     """
     element_data = periodic_table.get(element_symbol, None)
     if element_data is None:
-        periodic_table[element_symbol] = element(element_symbol)
-        element_data = periodic_table.get(element_symbol)
+        element_data = element(element_symbol)
+        periodic_table[element_symbol] = element_data
     return periodic_table, element_data
 
 

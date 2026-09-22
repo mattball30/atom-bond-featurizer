@@ -1,9 +1,46 @@
 """Atom and bond features from ``qmdesc``."""
 
-from qmdesc import ReactivityDescriptorHandler
+from __future__ import annotations
+
+import functools
+from typing import TYPE_CHECKING
 
 from bonafide.utils.base_featurizer import BaseFeaturizer
 from bonafide.utils.helper_functions_chemistry import get_atom_bond_mapping_dicts
+
+if TYPE_CHECKING:
+    from qmdesc import ReactivityDescriptorHandler
+
+
+def get_qmdesc_handler() -> ReactivityDescriptorHandler:
+    """Initialize qmdesc's ``ReactivityDescriptorHandler``.
+
+    qmdesc loads its model with ``torch.load()``, which defaults to ``weights_only=True`` since
+    PyTorch 2.6 and then fails to read the model file. Therefore, ``torch.load()`` is temporarily
+    called with ``weights_only=False`` while the handler is initialized.
+
+    Returns
+    -------
+    ReactivityDescriptorHandler
+        The initialized qmdesc handler.
+    """
+    try:
+        import torch
+        from qmdesc import ReactivityDescriptorHandler
+    except ImportError:
+        raise ImportError(
+            "get_qmdesc_handler(): qmdesc is not installed. Use BONAFIDE's pixi environment or "
+            "install it with 'pip install qmdesc'."
+        )
+
+    _torch_load = torch.load
+    torch.load = functools.partial(_torch_load, weights_only=False)
+    try:
+        handler = ReactivityDescriptorHandler()
+    finally:
+        torch.load = _torch_load
+
+    return handler
 
 
 class _Qmdesc2DAtom(BaseFeaturizer):
@@ -25,7 +62,7 @@ class _Qmdesc2DAtom(BaseFeaturizer):
         None
         """
         mapping_dict_atoms, _, canonical_smiles = get_atom_bond_mapping_dicts(self.mol)
-        handler = ReactivityDescriptorHandler()
+        handler = get_qmdesc_handler()
         predictions = handler.predict(canonical_smiles)
 
         for idx, value in enumerate(predictions["fukui_elec"]):
@@ -144,7 +181,7 @@ class _Qmdesc2DBond(BaseFeaturizer):
         None
         """
         _, mapping_dict_bonds, canonical_smiles = get_atom_bond_mapping_dicts(self.mol)
-        handler = ReactivityDescriptorHandler()
+        handler = get_qmdesc_handler()
         predictions = handler.predict(canonical_smiles)
 
         for idx, value in enumerate(predictions["bond_order"]):

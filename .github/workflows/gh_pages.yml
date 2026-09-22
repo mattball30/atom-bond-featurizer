@@ -24,38 +24,16 @@ jobs:
 
     - uses: actions/checkout@v4
 
-    - name: Set up Miniconda
-      uses: conda-incubator/setup-miniconda@v3
+    - name: Set up pixi
+      uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e  # v0.10.2
       with:
-        python-version: "3.12"
-        miniconda-version: latest
-        environment-file: bonafide_env_dev.yml
-        activate-environment: bonafide_env_dev
-        channels: conda-forge
-
-    - name: Cache conda environment
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/miniconda3/pkgs
-          ~/conda_pkgs_dir
-          ~/.cache/pip
-        key: ${{ runner.os }}-conda-${{ hashFiles('bonafide_env_dev.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-conda-
-
-    - name: Install bonafide
-      shell: bash -el {0}
-      run: |
-        pip install kallisto --no-deps
-        pip install --no-deps .
-        python post_install_setup.py
+        pixi-version: v0.80.0
+        environments: dev
+        cache: true
+        locked: true
 
     - name: Build documentation
-      shell: bash -el {0}
-      run: |
-        cd docs
-        make html
+      run: pixi run -e dev docs
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4

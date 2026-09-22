@@ -1,0 +1,66 @@
+context:
+  name: bonafide-chem
+  # Keep in sync with the version in pyproject.toml
+  version: "0.2.4"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  path: ../..
+  use_gitignore: true
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+  python:
+    entry_points:
+      - bonafide-check = bonafide.check_installation:main
+
+requirements:
+  host:
+    - python 3.12.*
+    - pip
+    - setuptools
+  run:
+    - python >=3.12
+    # dscribe 2.1.2 is incompatible with ase 3.27+ (TypeError in dscribe.core.System)
+    - ase <3.27
+    - dbstep >=1.1
+    - dscribe >=2.1
+    - ipywidgets
+    - mendeleev >=1.1,<2
+    - morfeus-ml >=0.8
+    - numpy >=2
+    - pandas >=2
+    - py3dmol
+    - pydantic >=2
+    - rdkit >=2025.3
+    - scipy
+    # Optional dependencies in pyproject.toml that are included in the conda package
+    - psi4
+    - dftd3-python
+    - xtb 6.7.1.*
+    - qmdesc >=1.0.6
+    - kallisto
+
+tests:
+  - python:
+      imports:
+        - bonafide
+      pip_check: true
+      python_version: 3.12.*
+  - script:
+      - python -c "from bonafide.features.qmdesc_ import get_qmdesc_handler; get_qmdesc_handler().predict('CCO')"
+      - python -c "import psi4"
+      - kallisto --help
+      - xtb --version
+
+about:
+  homepage: https://github.com/MolecularAI/atom-bond-featurizer
+  documentation: https://molecularai.github.io/atom-bond-featurizer/
+  summary: A Python package for calculating features for atoms and bonds in molecules
+  license: Apache-2.0
+  license_file: LICENSE

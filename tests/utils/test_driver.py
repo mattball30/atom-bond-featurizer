@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 import sys
 from pathlib import Path
 from subprocess import PIPE, run
@@ -148,9 +149,9 @@ def test_multiwfn_driver(
     assert result is None
     assert os.path.isfile(f"{_output_name}.out")
 
-    # Check output
+    # Check output (ignoring ANSI color codes, which newer Multiwfn versions print)
     with open(f"{_output_name}.out", "r") as f:
-        output_content = f.readlines()
+        output_content = [re.sub(r"\x1b\[[0-9;]*m", "", line) for line in f.readlines()]
 
     assert (
         output_content[0]

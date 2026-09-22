@@ -4,7 +4,7 @@ import random
 from typing import Dict, Union
 
 import numpy as np
-from mendeleev import element
+from mendeleev.models import Element
 
 from bonafide.utils.base_featurizer import BaseFeaturizer
 from bonafide.utils.helper_functions_chemistry import from_periodic_table
@@ -17,18 +17,18 @@ class _Mendeleev2DAtom(BaseFeaturizer):
     (https://mendeleev.readthedocs.io/en/stable/, last accessed on 09.09.2025).
     """
 
-    _periodic_table: Dict[str, element]
+    _periodic_table: Dict[str, Element]
 
     def __init__(self) -> None:
         self.extraction_mode = "single"
         super().__init__()
 
-    def _pull_from_periodic_table(self) -> element:
+    def _pull_from_periodic_table(self) -> Element:
         """Get the element data from the periodic table.
 
         Returns
         -------
-        element
+        Element
             The mendeleev element object for the atom of interest.
         """
         _element_symbol = self.mol.GetAtomWithIdx(self.atom_bond_idx).GetSymbol()
@@ -86,7 +86,10 @@ class _Mendeleev2DAtom(BaseFeaturizer):
             return
 
         element_data = self._pull_from_periodic_table()
-        value = element_data.electronegativity(**kwargs)
+        value = element_data.electronegativity(**kwargs)  # type: ignore[arg-type]
+        # Some scales (e.g., Sanderson) return a one-element array in newer mendeleev versions
+        if isinstance(value, np.ndarray) and value.size == 1:
+            value = value.item()
         if isinstance(value, np.float64):
             value = float(value)
         self.results[self.atom_bond_idx] = {self.feature_name: value}

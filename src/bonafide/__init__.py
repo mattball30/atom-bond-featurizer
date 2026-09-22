@@ -14,7 +14,7 @@ RDLogger.DisableLog("rdApp.*")
 
 # Set version
 try:
-    __version__ = version(distribution_name="bonafide")
+    __version__ = version(distribution_name="bonafide-chem")
 except Exception:
     __version__ = "unknown"
 

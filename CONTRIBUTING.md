@@ -9,15 +9,25 @@ Contributions to the projects are very welcome either through
 
 ## Environment
 
-For development work, BONAFIDE should be installed in its development environment.
+For development work, BONAFIDE should be installed in its development environment, which is
+managed with [pixi](https://pixi.sh).
 
 ```shell
-conda env create -n bonafide_env_dev -f bonafide_env_dev.yml python=3.12
-conda activate bonafide_env_dev
-pip install kallisto --no-deps
-pip install -e .
-python post_install_setup.py
-python check_bonafide_installation.py
+pixi install -e dev
+pixi run -e dev check
+```
+
+The dependencies are defined in `pyproject.toml` and locked in `pixi.lock`. After changing
+dependencies, update the lock file with `pixi lock` and commit both files.
+
+The following tasks are available in the `dev` environment:
+
+```shell
+pixi run -e dev test         # full test suite (requires Multiwfn and the alfabet environment)
+pixi run -e dev test-quick   # test suite as run in the CI
+pixi run -e dev mypy         # static type checking
+pixi run -e dev format-check # ruff format check
+pixi run -e dev docs         # build the documentation
 ```
 
 ## Code style and formatting

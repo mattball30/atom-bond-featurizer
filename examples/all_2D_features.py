@@ -2,9 +2,8 @@
 
 Usage
 -----
->>> conda activate bonafide_env
 >>> cd examples
->>> python all_2D_features.py
+>>> pixi run python all_2D_features.py
 """
 
 import os

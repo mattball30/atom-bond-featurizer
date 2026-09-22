@@ -1,4 +1,7 @@
-"""Check BONAFIDE installation."""
+"""Check the installation of BONAFIDE's dependencies.
+
+Run with ``bonafide-check`` (or ``pixi run check`` in BONAFIDE's pixi workspace).
+"""
 
 import importlib
 import os
@@ -67,15 +70,16 @@ def _check_qmdesc() -> bool:
     bool
         ``True`` if qmdesc is correctly installed, ``False`` otherwise.
     """
+    from bonafide.features.qmdesc_ import get_qmdesc_handler
+
     try:
-        from qmdesc import ReactivityDescriptorHandler
+        handler = get_qmdesc_handler()
 
     except ImportError:
         print("not installed.")
         return False
 
     try:
-        handler = ReactivityDescriptorHandler()
         _ = handler.predict("CCO")
 
     except Exception as e:
@@ -89,27 +93,28 @@ def _check_qmdesc() -> bool:
 def _check_alfabet() -> bool:
     """Check alfabet installation.
 
+    The Python interpreter of the ALFABET environment is taken from the
+    ``BONAFIDE_ALFABET_PYTHON`` environment variable or, if it is not set, from the
+    ``_feature_config.toml`` file.
+
     Returns
     -------
     bool
         ``True`` if alfabet is correctly installed, ``False`` otherwise.
     """
-    try:
-        import bonafide
-    except ImportError:
-        print("installation cannot be checked (bonafide module not found).")
-        return False
+    interpreter_path = os.environ.get("BONAFIDE_ALFABET_PYTHON")
 
-    config_path = os.path.join(os.path.dirname(bonafide.__file__), "_feature_config.toml")
+    if not interpreter_path:
+        config_path = os.path.join(os.path.dirname(__file__), "_feature_config.toml")
+        with open(config_path, "rb") as config_file:
+            configs = tomllib.load(config_file)
 
-    with open(config_path, "rb") as config_file:
-        configs = tomllib.load(config_file)
+        interpreter_path = configs.get("alfabet", {}).get("python_interpreter_path", None)
 
-    interpreter_path = configs.get("alfabet", {}).get("python_interpreter_path", None)
     if interpreter_path is None:
         print(
-            "not installed (Python interpreter not found in '_feature_config.toml' "
-            "(alfabet.python_interpreter_path))."
+            "not installed (Python interpreter not found in BONAFIDE_ALFABET_PYTHON or "
+            "'_feature_config.toml' (alfabet.python_interpreter_path))."
         )
         return False
 
@@ -128,7 +133,7 @@ def _check_alfabet() -> bool:
     return True
 
 
-def main() -> bool:
+def run_checks() -> bool:
     """Run all checks and print the results.
 
     Returns
@@ -136,56 +141,50 @@ def main() -> bool:
     bool
         ``True`` if all checks pass, ``False`` otherwise.
     """
-    checks = [
-        "morfeus",
-        "mendeleev",
-        "rdkit",
-        "qmdesc",
-        "kallisto",
-        "psi4",
-        "dftd3",
-        "dbstep",
-        "dscribe",
-        "Multiwfn_noGUI",
-        "xtb",
-        "bonafide",
-    ]
-    checks = sorted(checks, key=str.lower)
+    modules = ["morfeus", "mendeleev", "rdkit", "psi4", "dftd3", "dbstep", "dscribe"]
+    executables = ["kallisto", "Multiwfn_noGUI", "xtb"]
+    checks = sorted(modules + executables + ["qmdesc"], key=str.lower)
     checks.append("alfabet")
 
     counter = 0
     for check in checks:
         print(f"> {check:17} ...   ", end=" ")
-        if check not in ["Multiwfn_noGUI", "xtb", "qmdesc", "alfabet"]:
-            if _check_module(module_name=check) is True:
-                counter += 1
-
-        elif check == "Multiwfn_noGUI" or check == "xtb":
-            if _check_exe(prg_name=check) is True:
-                counter += 1
-
+        if check in modules:
+            passed = _check_module(module_name=check)
+        elif check in executables:
+            passed = _check_exe(prg_name=check)
         elif check == "qmdesc":
-            if _check_qmdesc() is True:
-                counter += 1
-
-        elif check == "alfabet":
-            if _check_alfabet() is True:
-                counter += 1
-
+            passed = _check_qmdesc()
         else:
-            print("Check not defined.")
+            passed = _check_alfabet()
 
-    if counter == len(checks):
-        return True
-    else:
-        return False
+        if passed is True:
+            counter += 1
+
+    return counter == len(checks)
 
 
-if __name__ == "__main__":
+def main() -> int:
+    """Entry point of the ``bonafide-check`` command.
+
+    Returns
+    -------
+    int
+        The exit code, ``0`` if all checks pass, ``1`` otherwise.
+    """
+    import bonafide
+
     print("--------------------------")
     print("BONAFIDE dependency checks")
     print("--------------------------")
-    if main() is True:
+    print(f"BONAFIDE version: {bonafide.__version__}\n")
+    if run_checks() is True:
         print("\n==> Hurray, all dependencies are installed correctly!\n")
-    else:
-        print("\n==> Caution, some dependencies are missing or not correctly installed.\n")
+        return 0
+
+    print("\n==> Caution, some dependencies are missing or not correctly installed.\n")
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

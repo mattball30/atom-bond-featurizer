@@ -41,7 +41,7 @@ def test_check_dependency_env() -> None:
     """Test for the ``check_dependency_env()`` function: valid packages."""
     python_path = check_dependency_env(
         python_path=sys.executable,
-        package_names=["bonafide", "pandas", "numpy"],
+        package_names=["bonafide-chem", "pandas", "numpy"],
         namespace="irrelevant",
     )
     assert python_path == sys.executable
@@ -58,7 +58,7 @@ def test_check_dependency_env2() -> None:
     ):
         check_dependency_env(
             python_path=_python_path,
-            package_names=["bonafide", "pandas", "numpy"],
+            package_names=["bonafide-chem", "pandas", "numpy"],
             namespace="irrelevant",
         )
 
@@ -77,7 +77,7 @@ def test_check_dependency_env3() -> None:
         check_dependency_env(
             python_path=_python_path,
             package_names=[
-                "bonafide",
+                "bonafide-chem",
                 "pandas",
                 "numpy",
                 _missing_package,

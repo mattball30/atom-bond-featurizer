@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- The environment is now managed with [pixi](https://pixi.sh) instead of conda. `pixi install`
+  installs BONAFIDE together with all its dependencies (including Psi4, xtb, qmdesc, and kallisto)
+  at the versions locked in `pixi.lock`. ALFABET is installed in a separate pixi environment with
+  `pixi install -e alfabet` and is discovered automatically (`BONAFIDE_ALFABET_PYTHON`
+  environment variable). The `bonafide_env.yml` and `bonafide_env_dev.yml` files were removed.
+- The distribution was renamed to `bonafide-chem` (the import name remains `bonafide`), and its
+  dependencies are now declared in `pyproject.toml` (with qmdesc as the optional `qmdesc` extra).
+- The `post_install_setup.py` script was removed. The PyTorch compatibility fix for qmdesc is now
+  applied at runtime.
+- The `check_bonafide_installation.py` script was replaced by the `bonafide-check` command
+  (`pixi run check`).
+- Psi4 is now imported only when a Psi4 calculation is requested.
+
 ## Version 0.2.4
 
 ### Fixes

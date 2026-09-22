@@ -40,7 +40,7 @@ from bonafide.utils.sp_xtb import XtbSP
 
 if TYPE_CHECKING:
     import ipywidgets
-    from mendeleev import element
+    from mendeleev.models import Element
     from PIL import PngImagePlugin
 
     from bonafide.utils.molecule_vault import MolVault
@@ -60,7 +60,7 @@ class _AtomBondFeaturizer(ABC, _AtomBondFeaturizerUtils):
     _loc: str
     _namespace: Optional[str]
     _output_directory: Optional[str]
-    _periodic_table: Dict[str, element]
+    _periodic_table: Dict[str, Element]
     mol_vault: MolVault
 
     @abstractmethod
@@ -253,7 +253,7 @@ class _AtomBondFeaturizer(ABC, _AtomBondFeaturizerUtils):
             "                                                                       \n"
             "               Features for Atoms and Bonds in Molecules               \n"
             "=======================================================================\n"
-            f"* Version:                 {version(distribution_name='bonafide')}\n"
+            f"* Version:                 {version(distribution_name='bonafide-chem')}\n"
             "* Documentation:           https://molecularai.github.io/atom-bond-featurizer\n"
             "* GitHub:                  https://github.com/MolecularAI/atom-bond-featurizer\n"
             f"* DOI:                     10.26434/chemrxiv.15001386/v1\n"
@@ -283,6 +283,14 @@ class _AtomBondFeaturizer(ABC, _AtomBondFeaturizerUtils):
             _errmsg = f"Error while reading the '{_file_name}' file: {e}."
             logging.error(f"'{self._namespace}' | {self._loc}()\n{_errmsg}")
             raise RuntimeError(f"{self._loc}(): {_errmsg}")
+
+        # Allow the ALFABET environment to be set through an environment variable (set
+        # automatically in BONAFIDE's pixi environment)
+        _alfabet_python = os.environ.get("BONAFIDE_ALFABET_PYTHON")
+        if _alfabet_python:
+            self._feature_config.setdefault("alfabet", {})["python_interpreter_path"] = (
+                _alfabet_python
+            )
 
         # Check the read data
         self._check_config_dict()
