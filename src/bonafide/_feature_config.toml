@@ -1,5 +1,4 @@
 [alfabet] #########################################################################################
-python_interpreter_path = "~/miniconda3/envs/alfabet_env/bin/python"
 
 [bonafide] ########################################################################################
 [bonafide.autocorrelation]

@@ -15,9 +15,6 @@ build:
   number: 0
   noarch: python
   script: ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
-  python:
-    entry_points:
-      - bonafide-check = bonafide.check_installation:main
 
 requirements:
   host:

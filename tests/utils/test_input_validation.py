@@ -237,7 +237,7 @@ def test_wrong_data_types(
 @pytest.mark.parametrize(
     "config_path, to_be_removed",
     [
-        (["alfabet"], "python_interpreter_path"),
+        (["alfabet"], None),
         (["bonafide", "autocorrelation"], "depth"),
         (["dscribe", "lmbtr"], "weighting_function"),
         (["xtb"], "method"),

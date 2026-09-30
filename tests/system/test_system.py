@@ -60,6 +60,11 @@ with open(os.path.join(_base, "input_string_metadata.json"), "r") as f:
 with open(os.path.join(os.path.dirname(bonafide.__file__), "_feature_info.json"), "r") as f:
     FEATURE_INFO = json.load(f)
 
+# Relative tolerance for comparing float feature values. It is slightly looser than the default of
+# pytest.approx() (1e-6) because the predictions of machine learning models (e.g., qmdesc through
+# PyTorch) vary at the order of 1e-6 between builds and platforms.
+FLOAT_REL_TOL = 1e-5
+
 # The electronic structure data of these features cannot be checked because they are Hessian files
 ATTACH_ELECTRONIC_STRUCTURE_SANITY_CHECK_WHITE_LIST = [
     "Morfeus3DBondLocalForceConstant",
@@ -241,7 +246,7 @@ def _evaluate_results3(
                 )
 
             for v1, v2 in zip(expected_values, value_values):
-                if pytest.approx(v1) != v2:
+                if pytest.approx(v1, rel=FLOAT_REL_TOL) != v2:
                     raise AssertionError(
                         f"Feature value for atom/bond index {idx} contains '{v2}' instead of "
                         f"expected '{v1}'."
@@ -268,7 +273,7 @@ def _evaluate_results3(
 
         # Float case
         if data_type == "float":
-            if pytest.approx(expected_value) != value:
+            if pytest.approx(expected_value, rel=FLOAT_REL_TOL) != value:
                 raise AssertionError(
                     f"Feature value for atom/bond index {idx} is '{value}' instead of expected "
                     f"'{expected_value}'."

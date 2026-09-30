@@ -33,12 +33,13 @@ For any further details, please visit the
 git clone https://github.com/MolecularAI/atom-bond-featurizer.git
 
 cd atom-bond-featurizer
-pixi install              # BONAFIDE with all dependencies (incl. Psi4, xtb, qmdesc, kallisto)
-pixi install -e alfabet   # optional: separate environment for ALFABET
-pixi run check            # check the installation
+pixi install                          # BONAFIDE with all dependencies (incl. Psi4, xtb, qmdesc, kallisto)
+pixi install -e alfabet-env           # optional: separate environment for ALFABET
+pixi run check_bonafide_installation  # check the installation
 ```
 
-Multiwfn must be installed separately. For further details, please see the
+qmdesc is installed by default; use the `no-qmdesc` environment (`pixi install -e no-qmdesc`) to
+leave it out. Multiwfn (version 2026.9.20) must be installed separately. For further details, please see the
 [installation guide](https://molecularai.github.io/atom-bond-featurizer/installation.html).
 
 ## Quick Start

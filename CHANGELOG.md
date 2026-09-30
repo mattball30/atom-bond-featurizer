@@ -6,16 +6,20 @@
 
 - The environment is now managed with [pixi](https://pixi.sh) instead of conda. `pixi install`
   installs BONAFIDE together with all its dependencies (including Psi4, xtb, qmdesc, and kallisto)
-  at the versions locked in `pixi.lock`. ALFABET is installed in a separate pixi environment with
-  `pixi install -e alfabet` and is discovered automatically (`BONAFIDE_ALFABET_PYTHON`
-  environment variable). The `bonafide_env.yml` and `bonafide_env_dev.yml` files were removed.
+  at the versions locked in `pixi.lock`. qmdesc is installed by default; the `no-qmdesc`
+  environment leaves it out. ALFABET is installed in a separate pixi environment with
+  `pixi install -e alfabet-env`. The `bonafide_env.yml` and `bonafide_env_dev.yml` files were
+  removed. The `dev` environment now includes `ipykernel` for running the example notebooks.
+- The Python interpreter of the ALFABET environment is now only taken from the
+  `BONAFIDE_ALFABET_PYTHON` environment variable (set automatically by pixi). The
+  `alfabet.python_interpreter_path` configuration setting was removed.
 - The distribution was renamed to `bonafide-chem` (the import name remains `bonafide`), and its
-  dependencies are now declared in `pyproject.toml` (with qmdesc as the optional `qmdesc` extra).
+  dependencies are now declared in `pyproject.toml` (with qmdesc in the `qmdesc` extra).
 - The `post_install_setup.py` script was removed. The PyTorch compatibility fix for qmdesc is now
   applied at runtime.
-- The `check_bonafide_installation.py` script was replaced by the `bonafide-check` command
-  (`pixi run check`).
-- Psi4 is now imported only when a Psi4 calculation is requested.
+- The `check_bonafide_installation.py` script was replaced by the
+  `pixi run check_bonafide_installation` task.
+- BONAFIDE is now tested with Multiwfn 2026.9.20.
 
 ## Version 0.2.4
 

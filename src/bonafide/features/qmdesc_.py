@@ -3,35 +3,46 @@
 from __future__ import annotations
 
 import functools
+import logging
 from typing import TYPE_CHECKING
 
 from bonafide.utils.base_featurizer import BaseFeaturizer
+from bonafide.utils.helper_functions import get_function_or_method_name
 from bonafide.utils.helper_functions_chemistry import get_atom_bond_mapping_dicts
 
 if TYPE_CHECKING:
     from qmdesc import ReactivityDescriptorHandler
 
 
-def get_qmdesc_handler() -> ReactivityDescriptorHandler:
+def get_qmdesc_handler(namespace: str = "None") -> ReactivityDescriptorHandler:
     """Initialize qmdesc's ``ReactivityDescriptorHandler``.
 
     qmdesc loads its model with ``torch.load()``, which defaults to ``weights_only=True`` since
     PyTorch 2.6 and then fails to read the model file. Therefore, ``torch.load()`` is temporarily
     called with ``weights_only=False`` while the handler is initialized.
 
+    Parameters
+    ----------
+    namespace : str, optional
+        The namespace of the currently handled molecule for logging purposes, by default "None".
+
     Returns
     -------
     ReactivityDescriptorHandler
         The initialized qmdesc handler.
     """
+    _loc = get_function_or_method_name()
+
     try:
         import torch
         from qmdesc import ReactivityDescriptorHandler
     except ImportError:
-        raise ImportError(
-            "get_qmdesc_handler(): qmdesc is not installed. Use BONAFIDE's pixi environment or "
-            "install it with 'pip install qmdesc'."
+        _errmsg = (
+            "qmdesc is not installed. Use BONAFIDE's default pixi environment or install it "
+            "with 'pip install bonafide-chem[qmdesc]'."
         )
+        logging.error(f"'{namespace}' | {_loc}()\n{_errmsg}")
+        raise ImportError(f"{_loc}(): {_errmsg}")
 
     _torch_load = torch.load
     torch.load = functools.partial(_torch_load, weights_only=False)
@@ -62,7 +73,7 @@ class _Qmdesc2DAtom(BaseFeaturizer):
         None
         """
         mapping_dict_atoms, _, canonical_smiles = get_atom_bond_mapping_dicts(self.mol)
-        handler = get_qmdesc_handler()
+        handler = get_qmdesc_handler(namespace=self.conformer_name[::-1].split("__", 1)[-1][::-1])
         predictions = handler.predict(canonical_smiles)
 
         for idx, value in enumerate(predictions["fukui_elec"]):
@@ -181,7 +192,7 @@ class _Qmdesc2DBond(BaseFeaturizer):
         None
         """
         _, mapping_dict_bonds, canonical_smiles = get_atom_bond_mapping_dicts(self.mol)
-        handler = get_qmdesc_handler()
+        handler = get_qmdesc_handler(namespace=self.conformer_name[::-1].split("__", 1)[-1][::-1])
         predictions = handler.predict(canonical_smiles)
 
         for idx, value in enumerate(predictions["bond_order"]):

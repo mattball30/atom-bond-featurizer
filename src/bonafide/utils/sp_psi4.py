@@ -8,13 +8,14 @@ import shutil
 import uuid
 from typing import TYPE_CHECKING, Any, Optional, Tuple
 
+import psi4
+
 from bonafide.utils.base_single_point import BaseSinglePoint
 from bonafide.utils.constants import EH_TO_KJ_MOL
 from bonafide.utils.helper_functions import clean_up
 
 if TYPE_CHECKING:
     import numpy as np
-    import psi4
     from numpy.typing import NDArray
 
 
@@ -91,16 +92,6 @@ class Psi4SP(BaseSinglePoint):
             A tuple containing the electronic energy in kJ/mol and the path to the molden file
             (``None`` if ``write_el_struc_file`` is ``False``).
         """
-        # Import Psi4 here as it is an optional dependency that is only available from conda-forge
-        try:
-            import psi4
-        except ImportError:
-            raise ImportError(
-                f"{self.__class__.__name__}.calculate(): Psi4 is not installed. It is only "
-                "available from conda-forge; use BONAFIDE's pixi environment or install it with "
-                "'conda install -c conda-forge psi4'."
-            )
-
         # Output file name
         _out_file_name = f"{self.__class__.__name__}__{self.conformer_name}__{self.state}"
 

@@ -1,6 +1,7 @@
 """Bond dissociation energy features from ``ALFABET``."""
 
 import logging
+import os
 from typing import Dict
 
 import pandas as pd
@@ -16,9 +17,10 @@ class _Alfabet2DBond(BaseFeaturizer):
 
     For details, please refer to the ALFABET repository (https://github.com/NREL/alfabet,
     last accessed on 09.09.2025).
-    """
 
-    python_interpreter_path: str
+    ALFABET is run with the Python interpreter given by the ``BONAFIDE_ALFABET_PYTHON``
+    environment variable, which is set automatically in BONAFIDE's pixi environments.
+    """
 
     def __init__(self) -> None:
         self.extraction_mode = "multi"
@@ -31,6 +33,16 @@ class _Alfabet2DBond(BaseFeaturizer):
         # is run with the canonical SMILES string to avoid potential issues with different
         # atom/bond orderings.
         _, mapping_dict_bonds, canonical_smiles = get_atom_bond_mapping_dicts(self.mol)
+
+        # Get the Python interpreter of the ALFABET environment
+        python_interpreter_path = os.environ.get("BONAFIDE_ALFABET_PYTHON")
+        if not python_interpreter_path:
+            self._err = (
+                "the BONAFIDE_ALFABET_PYTHON environment variable is not set; install the ALFABET "
+                "environment with 'pixi install -e alfabet-env' or set the variable to the path "
+                "of the Python interpreter of an environment in which ALFABET is installed"
+            )
+            return
 
         # ALFABET is run in its separate Python environment through a helper script that is
         # temporarily created and run with the respective Python interpreter. This was necessary
@@ -49,7 +61,7 @@ class _Alfabet2DBond(BaseFeaturizer):
 
         # Run ALFABET
         res = external_driver(
-            program_path=self.python_interpreter_path,
+            program_path=python_interpreter_path,
             program_input=alfabet_script_str,
             input_file_extension=".py",
             namespace=self.conformer_name[::-1].split("__", 1)[-1][::-1],

@@ -16,8 +16,8 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Topic :: Scientific/Engineering :: Chemistry",
 ]
-# psi4, xtb, kallisto, Multiwfn, and ALFABET are optional and are not listed here as they are not
-# (compatibly) available from PyPI. The pixi environment below provides all of them except
+# psi4 (required), xtb, kallisto, Multiwfn, and ALFABET are not listed here as they are not
+# (compatibly) available from PyPI. The pixi environments below provide all of them except
 # Multiwfn.
 dependencies = [
     "ase<3.27",
@@ -37,9 +37,6 @@ dependencies = [
 [project.optional-dependencies]
 qmdesc = ["qmdesc>=1.0.6", "torch>=2.0", "setuptools<81"]
 
-[project.scripts]
-bonafide-check = "bonafide.check_installation:main"
-
 [project.urls]
 Homepage = "https://github.com/MolecularAI/atom-bond-featurizer"
 Documentation = "https://molecularai.github.io/atom-bond-featurizer/"
@@ -47,7 +44,7 @@ Changelog = "https://github.com/MolecularAI/atom-bond-featurizer/blob/main/CHANG
 
 [dependency-groups]
 test = ["pytest", "pytest-mock", "pytest-cov"]
-dev = ["mypy", "ruff==0.15.*", "interrogate", "rstfmt"]
+dev = ["mypy", "ruff==0.15.*", "interrogate", "rstfmt", "ipykernel"]
 docs = [
     "sphinx",
     "furo",
@@ -87,17 +84,13 @@ py3dmol = "*"
 pydantic = ">=2"
 rdkit = ">=2025.3"
 scipy = "*"
-# Optional dependencies that are only available from conda-forge
+# Only available from conda-forge (psi4 is required, dftd3 and xtb are optional)
 psi4 = "*"
 dftd3-python = "*"
 xtb = "6.7.1.*"
-# CPU-only PyTorch for qmdesc (avoids the CUDA wheels from PyPI)
-pytorch-cpu = ">=2.0"
-# qmdesc imports pkg_resources, which was removed from setuptools 81
-setuptools = "<81"
 
 [tool.pixi.pypi-dependencies]
-bonafide-chem = { path = ".", editable = true, extras = ["qmdesc"] }
+bonafide-chem = { path = ".", editable = true }
 kallisto = "*"
 
 [tool.pixi.pypi-options]
@@ -105,10 +98,28 @@ kallisto = "*"
 dependency-overrides = { numpy = ">=2" }
 
 [tool.pixi.activation.env]
-BONAFIDE_ALFABET_PYTHON = "$PIXI_PROJECT_ROOT/.pixi/envs/alfabet/bin/python"
+BONAFIDE_ALFABET_PYTHON = "$PIXI_PROJECT_ROOT/.pixi/envs/alfabet-env/bin/python"
 
+# Installation check (pixi run check_bonafide_installation), built from BONAFIDE's own dependency
+# checks.
 [tool.pixi.tasks]
-check = "bonafide-check"
+_check_packages = { cmd = "python -c 'import bonafide, dbstep, dftd3, dscribe, mendeleev, morfeus, psi4, rdkit; print(\"Python packages: installed.\")'" }
+_check_programs = { cmd = "python -c 'from bonafide.utils.dependencies import check_dependency_path as check; [print(f\"{prg}: {check(prg)}\") for prg in (\"xtb\", \"kallisto\", \"Multiwfn_noGUI\")]'" }
+_check_alfabet = { cmd = "python -c 'import os; from bonafide.utils.dependencies import check_dependency_env as check; print(f\"alfabet: {check(os.environ[\"BONAFIDE_ALFABET_PYTHON\"], [\"alfabet\"], \"check\")}\")'" }
+# qmdesc is skipped in the no-qmdesc environment
+_check_qmdesc = { cmd = "python -c 'import os, sys; sys.exit(print(\"qmdesc: skipped (no-qmdesc environment).\")) if os.environ.get(\"PIXI_ENVIRONMENT_NAME\") == \"no-qmdesc\" else None; from bonafide.features.qmdesc_ import get_qmdesc_handler; get_qmdesc_handler().predict(\"CCO\"); print(\"qmdesc: installed.\")'" }
+check_bonafide_installation = { cmd = "echo '==> Hurray, all dependencies are installed correctly!'", depends-on = ["_check_packages", "_check_programs", "_check_alfabet", "_check_qmdesc"], description = "Check the installation of BONAFIDE's dependencies" }
+
+# qmdesc is installed by default (default and dev environments); use the no-qmdesc environment to
+# leave it out
+[tool.pixi.feature.qmdesc.dependencies]
+# CPU-only PyTorch for qmdesc (avoids the CUDA wheels from PyPI)
+pytorch-cpu = ">=2.0"
+# qmdesc imports pkg_resources, which was removed from setuptools 81
+setuptools = "<81"
+
+[tool.pixi.feature.qmdesc.pypi-dependencies]
+bonafide-chem = { path = ".", editable = true, extras = ["qmdesc"] }
 
 # ALFABET requires Python 3.7 and TensorFlow and therefore lives in a separate environment that
 # BONAFIDE calls through a subprocess
@@ -121,12 +132,15 @@ tensorflow = "*"
 alfabet = "*"
 
 [tool.pixi.feature.test.tasks]
-test = "pytest tests/"
+test = "pytest -s tests/"
+coverage = "pytest -s --cov-report=term-missing --cov=bonafide tests/"
 test-quick = { cmd = "pytest -s tests/ -m 'not get_fmo_energies_multiwfn and not multiwfn_driver and not attach_electronic_structure_with_multiwfn and not calculate_electronic_structure_with_multiwfn and not miscellaneous'" }
 
 [tool.pixi.feature.dev.tasks]
 mypy = "mypy src/"
+format = "ruff format src/ tests/"
 format-check = "ruff format --check src/ tests/"
+docstring-coverage = "interrogate -vv src/bonafide -i -I"
 
 [tool.pixi.feature.docs.tasks]
 docs = { cmd = "make html", cwd = "docs" }
@@ -139,7 +153,8 @@ rattler-build = "*"
 build-conda = "rattler-build build --recipe-dir recipe --output-dir build/conda -c conda-forge"
 
 [tool.pixi.environments]
-default = { solve-group = "default" }
-dev = { features = ["test", "dev", "docs"], solve-group = "default" }
-alfabet = { features = ["alfabet"], no-default-feature = true }
+default = { features = ["qmdesc"], solve-group = "default" }
+dev = { features = ["qmdesc", "test", "dev", "docs"], solve-group = "default" }
+no-qmdesc = { solve-group = "default" }
+alfabet-env = { features = ["alfabet"], no-default-feature = true }
 build = { features = ["build"], no-default-feature = true }

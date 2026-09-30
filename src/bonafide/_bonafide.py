@@ -284,14 +284,6 @@ class _AtomBondFeaturizer(ABC, _AtomBondFeaturizerUtils):
             logging.error(f"'{self._namespace}' | {self._loc}()\n{_errmsg}")
             raise RuntimeError(f"{self._loc}(): {_errmsg}")
 
-        # Allow the ALFABET environment to be set through an environment variable (set
-        # automatically in BONAFIDE's pixi environment)
-        _alfabet_python = os.environ.get("BONAFIDE_ALFABET_PYTHON")
-        if _alfabet_python:
-            self._feature_config.setdefault("alfabet", {})["python_interpreter_path"] = (
-                _alfabet_python
-            )
-
         # Check the read data
         self._check_config_dict()
 

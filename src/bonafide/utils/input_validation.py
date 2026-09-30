@@ -216,13 +216,6 @@ class _ValidateIterableIntOptionMixin:
         return self
 
 
-class ValidateAlfabet(BaseModel):
-    """Validate the configuration settings for the alfabet features."""
-
-    # Don't standardize the string to avoid changing the path
-    python_interpreter_path: StrictStr
-
-
 class ValidateBonafideAutocorrelation(_ValidateIterableIntOptionMixin, BaseModel):
     """Validate the configuration settings for the autocorrelation features.
 
@@ -2263,7 +2256,7 @@ def config_data_validator(
     _loc = get_function_or_method_name()
 
     _validators = {
-        "alfabet": ValidateAlfabet,
+        "alfabet": ValidateDummy,
         "bonafide.autocorrelation": ValidateBonafideAutocorrelation,
         "bonafide.constant": ValidateBonafideConstant,
         "bonafide.distance": ValidateBonafideDistance,
