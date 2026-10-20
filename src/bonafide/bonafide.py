@@ -10,8 +10,8 @@ import pandas as pd
 from rdkit import Chem
 
 from bonafide._bonafide import _AtomBondFeaturizer
-from bonafide.foundation.validation import foundation_model_data_validator
-from bonafide.foundation.worker import close_all_workers
+from bonafide.utils.foundation_model_input_validation import foundation_model_data_validator
+from bonafide.utils.foundation_model_worker import close_all_workers
 from bonafide.utils.constants import (
     DETERMINE_BONDS_METHODS,
     ELECTRONIC_STRUCTURE_ENGINES,
@@ -1833,7 +1833,7 @@ class AtomBondFeaturizer(_AtomBondFeaturizer):
         ----------
         model : type
             The foundation model featurizer class. It must inherit from
-            ``FoundationModelFeaturizer`` from ``bonafide/foundation/featurizer.py``.
+            ``FoundationModelFeaturizer`` from ``bonafide/utils/base_foundation_model.py``.
 
         Returns
         -------

@@ -1,4 +1,5 @@
-"""Test functions for the foundation model featurizer infrastructure (``bonafide.foundation``).
+"""Test functions for the ``add_foundation_model()`` method in the ``bonafide.bonafide`` module
+and the foundation model infrastructure it uses.
 
 The dummy encoder (``tests/data/foundation_dummy_encoder.py``) runs in a worker process started
 with the interpreter that runs the tests.
@@ -13,9 +14,9 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List
 import pytest
 from rdkit import Chem
 
-from bonafide.foundation import FoundationModelFeaturizer, Output
-from bonafide.foundation import worker as worker_module
-from bonafide.foundation.worker import close_all_workers
+from bonafide.utils.base_foundation_model import FoundationModelFeaturizer, Output
+from bonafide.utils import foundation_model_worker as worker_module
+from bonafide.utils.foundation_model_worker import close_all_workers
 
 if TYPE_CHECKING:
     from bonafide.bonafide import AtomBondFeaturizer

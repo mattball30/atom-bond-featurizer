@@ -8,8 +8,10 @@ library. The encoder module written by the user imports the base class from here
 
    from bonafide_encoder import EncoderError, FoundationModelEncoder, MolInput
 
-This works because the worker loop adds the directory of this file to ``sys.path`` before the
-user's encoder module is imported.
+This works because the worker loop registers this module as ``bonafide_encoder`` in
+``sys.modules`` before the user's encoder module is imported. The directory of this file is not
+added to ``sys.path``, so that the other BONAFIDE modules next to it cannot shadow modules of the
+foundation model's environment.
 
 Communication with BONAFIDE happens through JSON lines on stdin and stdout. To protect this channel
 from anything the foundation model prints, the original stdout is reserved for the protocol and
@@ -167,7 +169,6 @@ def main(argv: Optional[List[str]] = None) -> None:
     # Make "from bonafide_encoder import ..." in the encoder module refer to this module (and not
     # to a second copy of it), so that EncoderError raised there is caught here
     sys.modules.setdefault("bonafide_encoder", sys.modules[__name__])
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
     def _send(message: Dict[str, Any]) -> None:
         protocol.write(json.dumps(message) + "\n")

@@ -1,4 +1,4 @@
-"""BONAFIDE side of the AcidAmine 2D primary amine example.
+"""BONAFIDE side of the AcidAmine primary amine examples (2D and 3D models).
 
 Usage (in the BONAFIDE environment):
 
@@ -22,7 +22,7 @@ Usage (in the BONAFIDE environment):
 
 import os
 
-from bonafide.foundation import FoundationModelFeaturizer, Output
+from bonafide.utils.base_foundation_model import FoundationModelFeaturizer, Output
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -49,12 +49,43 @@ class AcidAmineAmine2D(FoundationModelFeaturizer):
 
     origin = "acidamine"
     input_mode = "2D"
-    encoder = os.path.join(_HERE, "amine_encoder.py") + ":AmineEncoder"
+    encoder = os.path.join(_HERE, "amine_encoder.py") + ":AmineEncoder2D"
     options = {"repo_dir": "", "models_dir": ""}
     outputs = [
         Output(f"{prop}_{stat}", "atom", indices_key=f"{prop}_{stat}_atoms")
         for stat in STATISTICS
         for prop in ATOM_PROPERTIES
+    ] + [
+        Output(f"{prop}_{stat}", "bond", indices_key="n1_c2_bond")
+        for stat in STATISTICS
+        for prop in BOND_PROPERTIES
+    ]
+
+
+# Atom properties of the amine N (N1) predicted by the 3D models
+ATOM_PROPERTIES_3D = ["pyrd_ar", "nbo_lp_energy", "nbo_lp_occupancy", "v_bur"]
+
+
+class AcidAmineAmine3D(FoundationModelFeaturizer):
+    """Conformer-ensemble DFT descriptors of primary amines predicted from each conformer with the
+    3D DimeNet++ models of AcidAmine_Descriptor_Predict. Only defined for the amine N and the
+    bond to its alpha carbon; all other atoms and bonds are "_inaccessible".
+
+    Unlike the authors, who generate their own RDKit conformer ensemble, the predictions are made
+    for BONAFIDE's conformers; average them with ``return_atom_features(reduce=True)``. Both
+    model sets run in the same environment, so the interpreter defaults to the
+    ``BONAFIDE_ACIDAMINE_PYTHON`` environment variable.
+    """
+
+    origin = "acidamine_dimenet"
+    input_mode = "3D"
+    encoder = os.path.join(_HERE, "amine_encoder.py") + ":AmineEncoder3D"
+    python = os.environ.get("BONAFIDE_ACIDAMINE_PYTHON")
+    options = {"repo_dir": "", "models_dir": ""}
+    outputs = [
+        Output(f"{prop}_{stat}", "atom", indices_key="n1_atom")
+        for stat in STATISTICS
+        for prop in ATOM_PROPERTIES_3D
     ] + [
         Output(f"{prop}_{stat}", "bond", indices_key="n1_c2_bond")
         for stat in STATISTICS

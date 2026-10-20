@@ -13,9 +13,11 @@ connect a model to BONAFIDE:
    takes SMILES strings or 3D structures, and how its outputs map onto BONAFIDE atom and bond
    features.
 
-BONAFIDE does not come with any foundation model, however, a worked example for the 2D models of
-`AcidAmine_Descriptor_Predict <https://github.com/nsf-c-cas/AcidAmine_Descriptor_Predict>`_ is
-available in ``examples/foundation_models/acidamine``.
+BONAFIDE does not come with any foundation model, however, worked examples for the 2D and 3D
+models of `AcidAmine_Descriptor_Predict
+<https://github.com/nsf-c-cas/AcidAmine_Descriptor_Predict>`_ are available in
+``examples/foundation_models/acidamine``, and ``examples/foundation_models/foundation_model_example.ipynb``
+walks through them.
 
 *************
  The encoder
@@ -74,7 +76,7 @@ class attributes; no methods need to be implemented.
 .. code:: python
 
    from bonafide import AtomBondFeaturizer
-   from bonafide.foundation import FoundationModelFeaturizer, Output
+   from bonafide.utils.base_foundation_model import FoundationModelFeaturizer, Output
 
 
    class MyModel(FoundationModelFeaturizer):
@@ -109,7 +111,9 @@ The class attributes are:
       strings or molecular graphs, including models that generate 3D structures internally. The
       features are 2D features.
    -  ``"3D"``: the encoder additionally receives the coordinates and is called once per conformer.
-      The features are 3D features.
+      The features are 3D features. To average them over the conformer ensemble, use
+      ``return_atom_features(reduce=True)``. Models whose published results average over their
+      own conformer ensemble give the same values only for the same ensemble.
 
 -  ``encoder``: the encoder file and class, ``"path/to/file.py:ClassName"``.
 -  ``outputs``: the mapping of the encoder outputs onto features (see below).

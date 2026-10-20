@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from rdkit import Chem
 
-from bonafide.foundation.worker import get_worker
+from bonafide.utils.foundation_model_worker import get_worker
 from bonafide.utils.base_featurizer import BaseFeaturizer
 from bonafide.utils.helper_functions_chemistry import (
     get_atom_bond_mapping_dicts,

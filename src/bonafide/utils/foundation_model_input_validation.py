@@ -5,7 +5,7 @@ import os
 import re
 from typing import Any, Dict, List, Tuple, Type
 
-from bonafide.foundation.featurizer import FoundationModelFeaturizer, Output
+from bonafide.utils.base_foundation_model import FoundationModelFeaturizer, Output
 from bonafide.utils.feature_factories import FEATURE_FACTORIES
 
 

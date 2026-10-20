@@ -99,6 +99,7 @@ dependency-overrides = { numpy = ">=2" }
 
 [tool.pixi.activation.env]
 BONAFIDE_ALFABET_PYTHON = "$PIXI_PROJECT_ROOT/.pixi/envs/alfabet-env/bin/python"
+BONAFIDE_ACIDAMINE_PYTHON = "$PIXI_PROJECT_ROOT/.pixi/envs/acidamine-env/bin/python"
 
 # Installation check (pixi run check_bonafide_installation), built from BONAFIDE's own dependency
 # checks.
@@ -158,3 +159,17 @@ dev = { features = ["qmdesc", "test", "dev", "docs"], solve-group = "default" }
 no-qmdesc = { solve-group = "default" }
 alfabet-env = { features = ["alfabet"], no-default-feature = true }
 build = { features = ["build"], no-default-feature = true }
+acidamine-env = { features = ["acidamine"], no-default-feature = true }
+
+# For the foundation model example: 
+[tool.pixi.feature.acidamine.dependencies]
+python = "3.10.*"
+pytorch = "1.13.*"
+pytorch_geometric = "2.4.*"
+pytorch_scatter = ">=2.1.1,<3"
+pytorch_sparse = ">=0.6.17,<0.7"
+pytorch_cluster = ">=1.6.1,<2"
+rdkit = "*"
+pandas = "*"
+numpy = "<2"
+tqdm = "*"
