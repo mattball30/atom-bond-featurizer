@@ -45,7 +45,8 @@ BOND_PROPERTIES = ["sterimol_b1", "sterimol_b5", "sterimol_l"]
 class AcidAmineAmine2D(FoundationModelFeaturizer):
     """Conformer-ensemble DFT descriptors of primary amines predicted from SMILES with the 2D
     GINE models of AcidAmine_Descriptor_Predict. Only defined for the amine N, its alpha carbon,
-    and the bond between them; all other atoms and bonds are "_inaccessible"."""
+    and the bond between them; all other atoms and bonds are "_inaccessible".
+    """
 
     origin = "acidamine"
     input_mode = "2D"
