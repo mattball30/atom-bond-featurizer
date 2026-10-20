@@ -10,6 +10,8 @@ import pandas as pd
 from rdkit import Chem
 
 from bonafide._bonafide import _AtomBondFeaturizer
+from bonafide.foundation.validation import foundation_model_data_validator
+from bonafide.foundation.worker import close_all_workers
 from bonafide.utils.constants import (
     DETERMINE_BONDS_METHODS,
     ELECTRONIC_STRUCTURE_ENGINES,
@@ -1818,3 +1820,71 @@ class AtomBondFeaturizer(_AtomBondFeaturizer):
         )
 
         logging.info(f"'{self._namespace}' | {self._loc}() | DONE\n")
+
+    def add_foundation_model(self, model: type) -> Dict[str, int]:
+        """Add the features of a foundation model running in an external Python environment.
+
+        One feature is added for each ``Output`` in the ``outputs`` attribute of the model class.
+        The model's settings (``python``, ``encoder``, ``options``, ``timeout``) are added to the
+        configuration settings under the model's origin and can be changed with
+        ``set_options()``. See the foundation models section of the documentation for details.
+
+        Parameters
+        ----------
+        model : type
+            The foundation model featurizer class. It must inherit from
+            ``FoundationModelFeaturizer`` from ``bonafide/foundation/featurizer.py``.
+
+        Returns
+        -------
+        Dict[str, int]
+            A dictionary mapping the names of the added features to their feature indices.
+        """
+        self._loc = f"{self.__class__.__name__}.{get_function_or_method_name()}"
+        logging.info(f"'{self._namespace}' | {self._loc}() | START\n> 'model':  {model}\n-----")
+
+        try:
+            origin, metadata_list, config = foundation_model_data_validator(
+                model=model, feature_config=self._feature_config
+            )
+        except (TypeError, ValueError) as e:
+            logging.error(f"'{self._namespace}' | {self._loc}()\n{e}")
+            raise e.__class__(f"{self._loc}(): {e}")
+
+        # Add the configuration settings
+        self._feature_config[origin] = config
+        self._check_config_dict()
+
+        # Add the feature factories and the feature information
+        added_features = {}
+        for metadata in metadata_list:
+            factory = metadata["factory"]
+            FEATURE_FACTORIES[factory.__name__] = factory
+            metadata["factory"] = factory.__name__
+
+            feature_idx = max(self._feature_info.keys()) + 1
+            self._feature_info[feature_idx] = metadata
+            added_features[metadata["name"]] = feature_idx
+
+        self._process_feature_info_dict()
+
+        _features_str = "\n".join(f"  {idx}: {name}" for name, idx in added_features.items())
+        logging.info(
+            f"'{self._namespace}' | {self._loc}()\nFoundation model '{origin}' successfully "
+            f"added to the feature space with the following feature INDICES:\n{_features_str}"
+        )
+        logging.info(f"'{self._namespace}' | {self._loc}() | DONE\n")
+        return added_features
+
+    def close_foundation_models(self) -> None:
+        """Stop all running foundation model worker processes.
+
+        Workers are started automatically when foundation model features are calculated and are
+        stopped when the Python session ends. Use this method to free their resources (e.g., GPU
+        memory) earlier. They are restarted automatically if needed.
+
+        Returns
+        -------
+        None
+        """
+        close_all_workers()

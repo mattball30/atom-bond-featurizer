@@ -15,6 +15,9 @@ demonstrated and explained with an example here.
    this function can be used to call any other external program with a custom input. See
    :doc:`external_environment` for more information.
 
+   For machine learning models that run in their own environment, see :doc:`foundation_models`,
+   which handles the worker process, the index mapping, and the registration of all model outputs.
+
 ********************************************
  Distance to fixed point in cartesian space
 ********************************************

@@ -98,6 +98,7 @@ BONAFIDE is released under the `Apache License, Version 2.0
    output
    custom
    external_environment
+   foundation_models
    feature_notes
 
 .. toctree::
