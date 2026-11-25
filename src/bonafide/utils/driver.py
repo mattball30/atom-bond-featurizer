@@ -120,6 +120,10 @@ def multiwfn_driver(
 ) -> None:
     """Run ``Multiwfn`` with the provided commands and environment variables.
 
+    Multiwfn cannot handle file paths longer than 200 characters. Therefore, the input file is
+    always passed to Multiwfn as a short relative symbolic link in the current working directory
+    (a copy is used if the link cannot be created). The link is removed after the calculation.
+
     Parameters
     ----------
     cmds : List[Union[str, int, float]]
@@ -166,20 +170,48 @@ def multiwfn_driver(
             "settings."
         )
 
+    # Get link to input file
+    input_file_path = os.path.abspath(input_file_path)
+    _input_alias = f"_bonafide_mwfn_inp{os.path.splitext(input_file_path)[-1]}"
+    try:
+        os.symlink(input_file_path, _input_alias)
+    except FileExistsError:
+        env.reset_environment()
+        clean_up(to_be_removed=["settings.ini"])
+        _errmsg = (
+            f"Cannot create the Multiwfn input file alias '{_input_alias}' because it already "
+            f"exists in '{os.getcwd()}' (possibly left over from an interrupted run). Remove it "
+            "and try again."
+        )
+        logging.error(f"'{namespace}' | {_loc}()\n{_errmsg}")
+        raise FileExistsError(f"{_loc}(): {_errmsg}")
+    except OSError as e:
+        logging.warning(
+            f"'{namespace}' | {_loc}()\nCreating a symbolic link to the Multiwfn input file "
+            f"failed ({e}). The file is copied to the working directory instead."
+        )
+        shutil.copy2(input_file_path, _input_alias)
+
     # Build Multiwfn command and run it
     command_string = "\n".join(map(str, cmds)) + "\n"
-    res = run(
-        [_call, input_file_path],
-        input=command_string.encode(),
-        stdout=PIPE,
-        stderr=PIPE,
-        check=False,
-    )
+    try:
+        res = run(
+            [_call, _input_alias],
+            input=command_string.encode(),
+            stdout=PIPE,
+            stderr=PIPE,
+            check=False,
+        )
+    finally:
+        if os.path.lexists(_input_alias):
+            os.remove(_input_alias)
 
     # Write output file
     command_string_ = command_string.replace("\n", " \\n ")[:-1]
     with open(f"{output_file_name}.out", "wb") as f:
-        header = f"# Multiwfn commands: {command_string_}\n\n".encode("utf-8")
+        header = (
+            f"# Multiwfn commands: {command_string_}\n# Multiwfn input file path: {input_file_path}\n\n"
+        ).encode("utf-8")
         f.write(header + res.stdout)
 
     # Reset environment

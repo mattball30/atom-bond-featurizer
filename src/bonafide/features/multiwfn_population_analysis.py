@@ -166,7 +166,10 @@ class _Multiwfn3DAtomPopulationAnalysis(BaseFeaturizer):
 
         if start_idx_2 is None:
             for line_idx, line in enumerate(multiwfn_output):
-                if line == " 20 Minimal Basis Iterative Stockholder (MBIS) charge\n":
+                if (
+                    line
+                    == " 23 Asymmetric Elliptical Minimal Basis Iterative Stockholder (AEMBIS)\n"
+                ):
                     start_idx_2 = line_idx + 1
                     break
 
@@ -266,7 +269,10 @@ class _Multiwfn3DAtomPopulationAnalysis(BaseFeaturizer):
 
         if start_idx_2 is None:
             for line_idx, line in enumerate(multiwfn_output):
-                if line == " 20 Minimal Basis Iterative Stockholder (MBIS) charge\n":
+                if (
+                    line
+                    == " 23 Asymmetric Elliptical Minimal Basis Iterative Stockholder (AEMBIS)\n"
+                ):
                     start_idx_2 = line_idx + 2
                     break
 

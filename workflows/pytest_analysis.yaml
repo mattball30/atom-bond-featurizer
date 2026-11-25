@@ -1,0 +1,39 @@
+# This workflow does not cover the testing of the explicit calculation of atom and bond features
+# as well as additional tests that are explicitly dependent on Multiwfn. To run the full test
+# suite, Multiwfn and the additional ALFABET environment must be available. To complete this
+# workflow successfully, all available features that cannot be calculated without the additional
+# dependencies must be marked as successfully tested in tests/system/data/passed*.json. For further
+# details on testing, see the CONTRIBUTING.md file.
+
+name: Pytest-quick
+
+on: [push, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  run-pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+    - name: Free disk space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        df -h
+
+    - name: Checkout Repository
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+    - name: Set up pixi
+      uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e  # v0.10.2
+      with:
+        pixi-version: v0.80.0
+        environments: dev
+        cache: true
+        locked: true
+
+    - name: Run pytest
+      run: pixi run -e dev test-quick

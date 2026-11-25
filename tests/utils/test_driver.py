@@ -5,7 +5,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from subprocess import PIPE, run
+from subprocess import PIPE, CompletedProcess, run
 from typing import Any, Callable, Dict
 from unittest.mock import patch
 
@@ -143,11 +143,12 @@ def test_multiwfn_driver(
     spy.assert_called_once()
     multiwfn_call = spy.call_args[0][0]
     assert multiwfn_call[0] == "Multiwfn_noGUI"
-    assert multiwfn_call[1] == _input_path
+    assert multiwfn_call[1] == "_bonafide_mwfn_inp.fchk"
     assert len(multiwfn_call) == 2
 
     assert result is None
     assert os.path.isfile(f"{_output_name}.out")
+    assert not os.path.lexists("_bonafide_mwfn_inp.fchk")
 
     # Check output (ignoring ANSI color codes, which newer Multiwfn versions print)
     with open(f"{_output_name}.out", "r") as f:
@@ -157,18 +158,196 @@ def test_multiwfn_driver(
         output_content[0]
         == r"# Multiwfn commands: 15 \n 0 \n 8 \n -10 \n 12 \n 3 \n 0.4 \n -1 \n q \n" + "\n"
     )
-    assert output_content[2] == " Multiwfn -- A Multifunctional Wavefunction Analyzer\n"
+    assert output_content[1] == f"# Multiwfn input file path: {os.path.abspath(_input_path)}\n"
+    assert output_content[3] == " Multiwfn -- A Multifunctional Wavefunction Analyzer\n"
     assert output_content[-1] == " 300 Other functions (Part 3)\n"
 
     _found = False
     for line in output_content:
-        if f" Loaded {_input_path} successfully!\n" == line:
+        if " Loaded _bonafide_mwfn_inp.fchk successfully!\n" == line:
             _found = True
             break
     assert _found is True
 
     # Clean up
     os.remove(f"{_output_name}.out")
+
+
+@pytest.mark.multiwfn_driver
+def test_multiwfn_driver2(
+    fetch_data_file: Callable[[str], str],
+    check_dependency: Callable[[str], None],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test for the ``multiwfn_driver()`` function with an input file path that is too long to be
+    handled by Multiwfn directly (> 200 characters) and a long file name.
+    """
+    check_dependency("Multiwfn_noGUI")
+
+    # Setup input with a long path
+    _long_dir = tmp_path.joinpath("d" * 100, "d" * 100, "d" * 100)
+    _long_dir.mkdir(parents=True)
+    _input_path = str(_long_dir / ("f" * 200 + ".fchk"))
+    with open(fetch_data_file("clopidogrel-conf_05.fchk"), "rb") as src:
+        with open(_input_path, "wb") as dst:
+            dst.write(src.read())
+    assert len(_input_path) > 500
+
+    _work_dir = tmp_path / "work"
+    _work_dir.mkdir()
+    monkeypatch.chdir(_work_dir)
+
+    # Run Multiwfn
+    multiwfn_driver(
+        cmds=["q"],
+        input_file_path=_input_path,
+        output_file_name="irrelevant_name",
+        environment_variables=MULTIWFN_ENV_VARS,
+        namespace="irrelevant",
+    )
+
+    # Only the output file must remain in the working directory
+    assert os.listdir(_work_dir) == ["irrelevant_name.out"]
+    assert os.path.isfile(_input_path)
+
+    with open("irrelevant_name.out", "r") as f:
+        output_content = [re.sub(r"\x1b\[[0-9;]*m", "", line) for line in f.readlines()]
+    assert output_content[1] == f"# Multiwfn input file path: {_input_path}\n"
+    assert " Loaded _bonafide_mwfn_inp.fchk successfully!\n" in output_content
+
+
+@pytest.mark.multiwfn_driver
+def test_multiwfn_driver3(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test for the ``multiwfn_driver()`` function if the symbolic link to the input file cannot
+    be created and the file is copied instead.
+    """
+    _input_path = tmp_path / "input.molden"
+    _input_path.write_text("dummy content")
+    _work_dir = tmp_path / "work"
+    _work_dir.mkdir()
+    monkeypatch.chdir(_work_dir)
+
+    def _fail_symlink(*args: Any, **kwargs: Any) -> None:
+        raise OSError("symlink not possible")
+
+    def _fake_run(args: Any, **kwargs: Any) -> CompletedProcess:
+        # The alias must be a regular file copy of the input file
+        assert args[1] == "_bonafide_mwfn_inp.molden"
+        assert not os.path.islink(args[1])
+        with open(args[1], "r") as f:
+            assert f.read() == "dummy content"
+        return CompletedProcess(args=args, returncode=0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr("bonafide.utils.driver.os.symlink", _fail_symlink)
+    monkeypatch.setattr("bonafide.utils.driver.run", _fake_run)
+    monkeypatch.setattr(
+        "bonafide.utils.driver.check_dependency_path",
+        lambda prg_name: str(tmp_path / "Multiwfn_noGUI"),
+    )
+
+    multiwfn_driver(
+        cmds=["q"],
+        input_file_path=str(_input_path),
+        output_file_name="irrelevant_name",
+        environment_variables={},
+        namespace="irrelevant",
+    )
+
+    assert os.listdir(_work_dir) == ["irrelevant_name.out"]
+    assert _input_path.read_text() == "dummy content"
+    assert "The file is copied to the working directory instead." in caplog.text
+
+
+@pytest.mark.multiwfn_driver
+def test_multiwfn_driver4(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that the input file alias of the ``multiwfn_driver()`` function is removed if running
+    Multiwfn raises an exception.
+    """
+    _input_path = tmp_path / "input.fchk"
+    _input_path.write_text("dummy content")
+    _work_dir = tmp_path / "work"
+    _work_dir.mkdir()
+    monkeypatch.chdir(_work_dir)
+
+    def _failing_run(args: Any, **kwargs: Any) -> None:
+        assert os.path.islink(args[1])
+        raise RuntimeError("Multiwfn crashed")
+
+    monkeypatch.setattr("bonafide.utils.driver.run", _failing_run)
+    monkeypatch.setattr(
+        "bonafide.utils.driver.check_dependency_path",
+        lambda prg_name: str(tmp_path / "Multiwfn_noGUI"),
+    )
+
+    with pytest.raises(RuntimeError, match="Multiwfn crashed"):
+        multiwfn_driver(
+            cmds=["q"],
+            input_file_path=str(_input_path),
+            output_file_name="irrelevant_name",
+            environment_variables={},
+            namespace="irrelevant",
+        )
+
+    assert os.listdir(_work_dir) == []
+    assert _input_path.read_text() == "dummy content"
+
+
+@pytest.mark.multiwfn_driver
+@pytest.mark.parametrize("stale_alias_is_link", [True, False])
+def test_multiwfn_driver5(
+    stale_alias_is_link: bool,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that the ``multiwfn_driver()`` function fails without modifying an already existing
+    input file alias (e.g., left over from an interrupted run).
+    """
+    _input_path = tmp_path / "input.fchk"
+    _input_path.write_text("current molecule")
+    _other_input_path = tmp_path / "other.fchk"
+    _other_input_path.write_text("other molecule")
+    _work_dir = tmp_path / "work"
+    _work_dir.mkdir()
+    monkeypatch.chdir(_work_dir)
+
+    _alias = _work_dir / "_bonafide_mwfn_inp.fchk"
+    if stale_alias_is_link:
+        os.symlink(_other_input_path, _alias)
+    else:
+        _alias.write_text("stale copy")
+
+    def _unexpected_run(*args: Any, **kwargs: Any) -> None:
+        raise AssertionError("Multiwfn must not be run.")
+
+    monkeypatch.setattr("bonafide.utils.driver.run", _unexpected_run)
+    monkeypatch.setattr(
+        "bonafide.utils.driver.check_dependency_path",
+        lambda prg_name: str(tmp_path / "Multiwfn_noGUI"),
+    )
+
+    with pytest.raises(FileExistsError, match="already exists"):
+        multiwfn_driver(
+            cmds=["q"],
+            input_file_path=str(_input_path),
+            output_file_name="irrelevant_name",
+            environment_variables={},
+            namespace="irrelevant",
+        )
+
+    # The existing alias and all input files must remain untouched
+    assert os.listdir(_work_dir) == ["_bonafide_mwfn_inp.fchk"]
+    assert os.path.islink(_alias) is stale_alias_is_link
+    if stale_alias_is_link:
+        assert os.readlink(_alias) == str(_other_input_path)
+    else:
+        assert _alias.read_text() == "stale copy"
+    assert _input_path.read_text() == "current molecule"
+    assert _other_input_path.read_text() == "other molecule"
+    assert "The file is copied to the working directory instead." not in caplog.text
 
 
 #############################################

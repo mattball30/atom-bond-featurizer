@@ -114,6 +114,10 @@ class Psi4SP(BaseSinglePoint):
         # optking is imported by Psi4 during the calculation and warns about pydantic v2 on import
         logging.getLogger("psi4.optking").setLevel(logging.ERROR)
 
+        # Store the current scratch path
+        psi4_io = psi4.core.IOManager.shared_object()
+        _previous_scratch = psi4_io.get_default_path()
+
         try:
             # Set scratch directory
             scratch_folder_name = f"bonafide-psi4-{self.conformer_name}-{uuid.uuid4().hex[:8]}"
@@ -127,8 +131,6 @@ class Psi4SP(BaseSinglePoint):
             if not os.access(path=self._job_scratch, mode=os.W_OK):
                 raise OSError(f"Scratch directory at '{self._job_scratch}' is not writable.")
 
-            psi4_io = psi4.core.IOManager.shared_object()
-            _previous_scratch = psi4_io.get_default_path()
             psi4_io.set_default_path(self._job_scratch)
 
             # Set up calculation parameters
@@ -180,7 +182,6 @@ class Psi4SP(BaseSinglePoint):
             return energy, molden_file_path
 
         finally:
-            psi4_io = psi4.core.IOManager.shared_object()
             psi4_io.set_default_path(_previous_scratch)
             psi4.core.clean_options()
             self._run_clean_up()

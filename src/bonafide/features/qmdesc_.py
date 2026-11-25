@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from qmdesc import ReactivityDescriptorHandler
 
 
-def get_qmdesc_handler(namespace: str = "None") -> ReactivityDescriptorHandler:
+def _get_qmdesc_handler(namespace: str = "None") -> ReactivityDescriptorHandler:
     """Initialize qmdesc's ``ReactivityDescriptorHandler``.
 
     qmdesc loads its model with ``torch.load()``, which defaults to ``weights_only=True`` since
@@ -73,7 +73,7 @@ class _Qmdesc2DAtom(BaseFeaturizer):
         None
         """
         mapping_dict_atoms, _, canonical_smiles = get_atom_bond_mapping_dicts(self.mol)
-        handler = get_qmdesc_handler(namespace=self.conformer_name[::-1].split("__", 1)[-1][::-1])
+        handler = _get_qmdesc_handler(namespace=self.conformer_name[::-1].split("__", 1)[-1][::-1])
         predictions = handler.predict(canonical_smiles)
 
         for idx, value in enumerate(predictions["fukui_elec"]):
@@ -192,7 +192,7 @@ class _Qmdesc2DBond(BaseFeaturizer):
         None
         """
         _, mapping_dict_bonds, canonical_smiles = get_atom_bond_mapping_dicts(self.mol)
-        handler = get_qmdesc_handler(namespace=self.conformer_name[::-1].split("__", 1)[-1][::-1])
+        handler = _get_qmdesc_handler(namespace=self.conformer_name[::-1].split("__", 1)[-1][::-1])
         predictions = handler.predict(canonical_smiles)
 
         for idx, value in enumerate(predictions["bond_order"]):

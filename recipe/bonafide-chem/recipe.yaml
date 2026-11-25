@@ -1,7 +1,7 @@
 context:
   name: bonafide-chem
   # Keep in sync with the version in pyproject.toml
-  version: "0.2.4"
+  version: "1.0.0"
 
 package:
   name: ${{ name }}
@@ -50,7 +50,7 @@ tests:
       pip_check: true
       python_version: 3.12.*
   - script:
-      - python -c "from bonafide.features.qmdesc_ import get_qmdesc_handler; get_qmdesc_handler().predict('CCO')"
+      - python -c "from bonafide.features.qmdesc_ import _get_qmdesc_handler; _get_qmdesc_handler().predict('CCO')"
       - python -c "import psi4"
       - kallisto --help
       - xtb --version

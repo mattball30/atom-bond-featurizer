@@ -152,9 +152,9 @@ def get_energy_based_reduced_features(
 
         # Change "_inaccessible" to NaN
         min_e = min_e.replace("_inaccessible", np.nan)
-        min_e = min_e.infer_objects(copy=False)
+        min_e = min_e.infer_objects()
         max_e = max_e.replace("_inaccessible", np.nan)
-        max_e = max_e.infer_objects(copy=False)
+        max_e = max_e.infer_objects()
 
         # Warn if multiple conformers have the same min/max energy
         if len(min_e) > 1:
@@ -194,9 +194,9 @@ def get_energy_based_reduced_features(
 
         # Calculate Boltzmann-weighted average for each feature
         boltzmann = sub_df_.apply(
-            lambda col: None
-            if col.isna().all() is np.True_
-            else (col * weights).sum() / weights.sum()
+            lambda col: (
+                None if col.isna().all() is np.True_ else (col * weights).sum() / weights.sum()
+            )
         )
 
         # Append reduced features to overall DataFrames

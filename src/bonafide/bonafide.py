@@ -1266,6 +1266,7 @@ class AtomBondFeaturizer(_AtomBondFeaturizer):
         engine: str,
         redox: str = "n",
         prune_by_energy: Optional[Tuple[Union[int, float], str]] = None,
+        stop_on_error: bool = False,
     ) -> None:
         """Calculate the electronic structure of all conformers of a molecule vault hosting
         a 3D molecule.
@@ -1293,6 +1294,16 @@ class AtomBondFeaturizer(_AtomBondFeaturizer):
             relative energy cutoff value and the second entry is the respective energy unit.
             Supported units are "Eh", "kcal/mol", and "kJ/mol". If ``None``, no pruning is
             performed, by default ``None``.
+        stop_on_error : bool, optional
+            If ``True``, the calculation is stopped as soon as an electronic structure calculation
+            fails for a conformer. The data of the successfully calculated conformers is attached
+            to the molecule vault, while the failed conformer and all following conformers get
+            ``None`` as energy and electronic structure data and are therefore set to be invalid.
+            Afterwards, a ``RuntimeError`` is raised and no further redox states are calculated
+            (data of previously completed redox states is kept). If ``False``, the error is
+            logged, the calculation continues with the remaining conformers, and the conformers
+            for which the calculation failed are set to be invalid and ignored during feature
+            calculation and any further processing, by default ``False``.
 
         Returns
         -------
@@ -1304,6 +1315,7 @@ class AtomBondFeaturizer(_AtomBondFeaturizer):
             f"> 'engine':           {engine}\n"
             f"> 'redox':            {redox}\n"
             f"> 'prune_by_energy':  {prune_by_energy}\n"
+            f"> 'stop_on_error':    {stop_on_error}\n"
             "-----"
         )
 
@@ -1318,6 +1330,9 @@ class AtomBondFeaturizer(_AtomBondFeaturizer):
         # Check input types
         self._check_is_of_type(expected_type=str, value=engine, parameter_name="engine")
         self._check_is_of_type(expected_type=str, value=redox, parameter_name="redox")
+        self._check_is_of_type(
+            expected_type=bool, value=stop_on_error, parameter_name="stop_on_error"
+        )
 
         # The input to prune_by_energy is checked in MolVault.prune_ensemble_by_energy()
 
@@ -1393,7 +1408,9 @@ class AtomBondFeaturizer(_AtomBondFeaturizer):
                 )
                 continue
 
-            self._calculate_electronic_structure(engine=engine, state=state)
+            self._calculate_electronic_structure(
+                engine=engine, state=state, stop_on_error=stop_on_error
+            )
 
             # Prune conformer ensemble if requested
             if prune_by_energy is not None and state == "n":

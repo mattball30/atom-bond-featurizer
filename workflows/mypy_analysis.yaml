@@ -1,0 +1,32 @@
+name: Mypy
+
+on: [push, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  run-mypy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - name: Free disk space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        df -h
+
+    - name: Checkout Repository
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+    - name: Set up pixi
+      uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e  # v0.10.2
+      with:
+        pixi-version: v0.80.0
+        environments: dev
+        cache: true
+        locked: true
+
+    - name: Run mypy
+      run: pixi run -e dev mypy -v

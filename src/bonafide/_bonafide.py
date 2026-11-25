@@ -256,8 +256,8 @@ class _AtomBondFeaturizer(ABC, _AtomBondFeaturizerUtils):
             f"* Version:                 {version(distribution_name='bonafide-chem')}\n"
             "* Documentation:           https://molecularai.github.io/atom-bond-featurizer\n"
             "* GitHub:                  https://github.com/MolecularAI/atom-bond-featurizer\n"
-            f"* DOI:                     10.26434/chemrxiv.15001386/v1\n"
-            f"* Reference:               ChemRXiv 2026\n"
+            f"* DOI:                     10.1186/s13321-026-01283-6\n"
+            f"* Reference:               J. Cheminform. 2026, 18, 127\n"
             "\n"
             f"* Installation directory:  {os.path.dirname(__file__)}\n"
         )
@@ -679,7 +679,7 @@ class _AtomBondFeaturizer(ABC, _AtomBondFeaturizerUtils):
                 else:
                     _errmsg = (
                         f"Attaching the SMILES string to the conformer with index {idx} failed: "
-                        f"{error_message}. Therefore, fhe conformer is set to be invalid."
+                        f"{error_message}. Therefore, the conformer is set to be invalid."
                     )
                     self.mol_vault.is_valid[idx] = False
                     logging.error(f"'{self._namespace}' | {self._loc}()\n{_errmsg}")
@@ -850,21 +850,20 @@ class _AtomBondFeaturizer(ABC, _AtomBondFeaturizerUtils):
             # Determine file type
             if el_struc_file is not None:
                 file_type = os.path.splitext(el_struc_file)[-1][1:]
+                file_path = os.path.abspath(el_struc_file)
 
                 # Check if the file exists
-                if not os.path.exists(el_struc_file):
+                if not os.path.exists(file_path):
                     # Avoid leaving the MolVault in a partially-attached state when raising
                     _el_struc_list.clear()
                     _el_struc_types.clear()
 
                     _errmsg = (
                         f"Invalid input to 'electronic_structure_data': path to the input file at "
-                        f"'{el_struc_file}' is invalid."
+                        f"'{file_path}' is invalid."
                     )
                     logging.error(f"'{self._namespace}' | {self._loc}()\n{_errmsg}")
                     raise FileNotFoundError(f"{self._loc}(): {_errmsg}")
-
-                file_path = os.path.join(os.getcwd(), el_struc_file)
 
                 # Check file type
                 _file_type = standardize_string(inp_data=file_type)
@@ -1015,7 +1014,7 @@ class _AtomBondFeaturizer(ABC, _AtomBondFeaturizerUtils):
         # Clean up (after Hueckel calculation)
         clean_up(to_be_removed=["nul", "run.out"])
 
-    def _calculate_electronic_structure(self, engine: str, state: str) -> None:
+    def _calculate_electronic_structure(self, engine: str, state: str, stop_on_error: bool) -> None:
         """Execute the calculation of the electronic structure of all conformers of a molecule
         vault hosting a 3D molecule.
 
@@ -1027,6 +1026,12 @@ class _AtomBondFeaturizer(ABC, _AtomBondFeaturizerUtils):
             The redox state of the electronic structure data to be calculated. Can either be "n"
             (actual molecule), "n+1" (actual molecule plus one electron), or "n-1" (actual molecule
             minus one electron).
+        stop_on_error : bool
+            If ``True``, the calculation is stopped as soon as it fails for a conformer. The
+            results of the successful conformers are attached to the molecule vault, the failed
+            and all following conformers get ``None`` as energy and electronic structure data,
+            and an error is raised afterwards. If ``False``, the calculation continues with the
+            next conformer if an error occurs.
 
         Returns
         -------
@@ -1075,8 +1080,10 @@ class _AtomBondFeaturizer(ABC, _AtomBondFeaturizerUtils):
                 _write_el_struc_file = False
                 if self._keep_output_files is True:
                     _write_el_struc_file = True
-                energies, electronic_strucs = sp.run(
-                    state=state, write_el_struc_file=_write_el_struc_file
+                energies, electronic_strucs, stop_error = sp.run(
+                    state=state,
+                    stop_on_error=stop_on_error,
+                    write_el_struc_file=_write_el_struc_file,
                 )
             finally:
                 # Always reset current working directory to the path where the featurizer was initialized
@@ -1110,6 +1117,11 @@ class _AtomBondFeaturizer(ABC, _AtomBondFeaturizerUtils):
                     "method ('output_directory' parameter) to keep the output files and automatically "
                     "attach them to the molecule vault."
                 )
+
+            # Raise the error that stopped the calculation (already logged in sp.run()) after
+            # the available results were attached
+            if stop_error is not None:
+                raise stop_error
 
         finally:
             # Always reset charge and multiplicity to initial values

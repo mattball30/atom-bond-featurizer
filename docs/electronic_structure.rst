@@ -120,6 +120,18 @@ After the single-point energy calculation(s) are completed, the energy and elect
 are **automatically attached to the conformer ensemble** and can be used for the calculation of
 descriptors.
 
+The ``stop_on_error`` parameter controls what happens if the **calculation fails** for a conformer.
+By default (``stop_on_error=False``), the error is only logged, the calculation continues with the
+next conformer, and the conformers for which the calculation failed are set to be invalid and
+ignored during featurization. If ``stop_on_error=True``, the calculation is stopped at the failed
+conformer. The data of the successfully calculated conformers is still attached, while the failed
+conformer and all following conformers get no energy and electronic structure data and are
+therefore set to be invalid.
+
+.. code:: python
+
+   >>> f.calculate_electronic_structure("xtb", redox="all", stop_on_error=True)
+
 As for the :meth:`read_input() <bonafide.bonafide.AtomBondFeaturizer.read_input>` and
 :meth:`attach_energy() <bonafide.bonafide.AtomBondFeaturizer.attach_energy>` methods (see above), it
 is possible to **prune the conformer ensemble** based on relative energies by setting the

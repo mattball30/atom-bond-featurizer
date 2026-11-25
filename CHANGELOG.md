@@ -1,29 +1,40 @@
 # Changelog
 
-## Unreleased
+## Version 1.0.0
+
+### Added
+
+- The `calculate_electronic_structure()` method has a new `stop_on_error` parameter (default:
+  `False`). By default, the previous behavior is retained: if an electronic structure calculation
+  fails for a conformer, the error is logged, and the calculation continues with the next
+  conformer. With `stop_on_error=True`, the calculation is stopped instead, the data of the
+  successfully calculated conformers is attached (the failed and all following conformers get no
+  data and are set to be invalid), and an error is raised and logged.
+- The 200-character limit for Multiwfn input file paths was made irrelevant. Multiwfn now works
+  with a relative symbolic link to the actual input file as input.
 
 ### Changed
 
-- The environment is now managed with [pixi](https://pixi.sh) instead of conda. `pixi install`
-  installs BONAFIDE together with all its dependencies (including Psi4, xtb, qmdesc, and kallisto)
-  at the versions locked in `pixi.lock`. qmdesc is installed by default; the `no-qmdesc`
-  environment leaves it out. ALFABET is installed in a separate pixi environment with
-  `pixi install -e alfabet-env`. The `bonafide_env.yml` and `bonafide_env_dev.yml` files were
-  removed. The `dev` environment now includes `ipykernel` for running the example notebooks.
-- The Python interpreter of the ALFABET environment is now only taken from the
-  `BONAFIDE_ALFABET_PYTHON` environment variable (set automatically by pixi). The
-  `alfabet.python_interpreter_path` configuration setting was removed.
+- The environment is now managed with [pixi](https://pixi.sh) instead of conda and locked in the
+  `pixi.lock` file. The installation instructions were updated.
 - The distribution was renamed to `bonafide-chem` (the import name remains `bonafide`), and its
-  dependencies are now declared in `pyproject.toml` (with qmdesc in the `qmdesc` extra).
+  dependencies are now declared in `pyproject.toml` file.
+- BONAFIDE is now intended to be used with Multiwfn 2026.10.18. It was tested against this version.
+- The DOI and reference in the header of BONAFIDE's log file was changed from the preprint to the
+  new published paper (J. Cheminform. 2026, 18, 127).
+
+### Removed
+
+- The Python interpreter of the ALFABET environment is now taken from the
+  `BONAFIDE_ALFABET_PYTHON` environment variable (set automatically by pixi as defined in the
+  `pyproject.toml` file). The `alfabet.python_interpreter_path` configuration setting in the
+  `_feature_config.toml` file was removed.
 - The `post_install_setup.py` script was removed. The PyTorch compatibility fix for qmdesc is now
   applied at runtime.
-- The `check_bonafide_installation.py` script was replaced by the
-  `pixi run check_bonafide_installation` task.
-- BONAFIDE is now tested with Multiwfn 2026.9.20.
 
 ## Version 0.2.4
 
-### Fixes
+### Fixed
 
 - There was a bug in the `attach_smiles()` method when run with `align=True` which potentially
   resulted in erroneous atom orders within the final RDKit mol object used for featurization for
@@ -44,7 +55,7 @@
 
 ## Version 0.2.2
 
-### Fixes
+### Fixed
 
 - RDKit's `ResonanceMolSupplier` can produce `None` objects, which is problematic for the
   `is_symmetric_to` features (see Version 0.2.0). This is, for example, due to valence violations

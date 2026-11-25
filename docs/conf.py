@@ -2,7 +2,7 @@
 project = "BONAFIDE"
 copyright = "2026, Molecular AI, AstraZeneca Gothenburg"
 author = "Lukas M. Sigmund"
-release = "0.2.4"
+release = "1.0.0"
 
 # General configuration ###########################################################################
 extensions = [
@@ -20,8 +20,6 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # API doc settings ################################################################################
-napoleon_include_private_with_doc = True
-napoleon_include_special_with_doc = True
 numpydoc_show_class_members = False
 autodoc_typehints = "none"
 

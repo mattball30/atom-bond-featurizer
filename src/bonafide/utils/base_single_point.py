@@ -95,8 +95,8 @@ class BaseSinglePoint(_BaseMixin):
             raise AttributeError(f"{_loc}(): {_errmsg}")
 
     def run(
-        self, state: str, write_el_struc_file: bool = True
-    ) -> Tuple[List[Tuple[Optional[float], str]], List[Optional[str]]]:
+        self, state: str, stop_on_error: bool, write_el_struc_file: bool = True
+    ) -> Tuple[List[Tuple[Optional[float], str]], List[Optional[str]], Optional[RuntimeError]]:
         """Run a single-point energy calculation for all conformers of the molecule in the
         molecule vault.
 
@@ -104,19 +104,28 @@ class BaseSinglePoint(_BaseMixin):
         ----------
         state : str
             The redox state of the molecule to consider, either "n", "n+1", or "n-1".
+        stop_on_error : bool
+            If ``True``, the loop over the conformers is stopped as soon as a calculation fails
+            for a conformer. The failed conformer and all following conformers get ``None`` as
+            energy and electronic structure data, and the error is returned so that the caller
+            can raise it after the results were attached. If ``False``, the error is logged and the
+            calculation continues with the next conformer.
         write_el_struc_file : bool, optional
             Whether to write the calculated electronic structure of the molecule to an electronic
             structure data file, by default ``True``.
 
         Returns
         -------
-        Tuple[List[Tuple[Optional[float], str]], List[Optional[str]]]
-            A tuple containing the data for each conformer:
+        Tuple[List[Tuple[Optional[float], str]], List[Optional[str]], Optional[RuntimeError]]
+            A tuple containing:
 
-            * A list of tuples with the electronic energy in kJ/mol (value, unit pair). In case
-              the calculation failed, the energy is ``None``.
-            * A list of paths to the electronic structure data files. If they were not requested,
-              the paths are ``None``.
+            * A list of tuples with the electronic energy in kJ/mol (value, unit pair) for each
+              conformer. In case the calculation failed or was not run, the energy is ``None``.
+            * A list of paths to the electronic structure data files for each conformer. If they
+              were not requested or the calculation failed or was not run, the paths are
+              ``None``.
+            * The error that stopped the calculation if ``stop_on_error`` is ``True`` and a
+              calculation failed (chained to the original exception), otherwise ``None``.
         """
         _loc = f"{self.__class__.__name__}.{get_function_or_method_name()}"
 
@@ -127,8 +136,9 @@ class BaseSinglePoint(_BaseMixin):
         self.charge = self.mol_vault.charge  # type: ignore[assignment]
         self.multiplicity = self.mol_vault.multiplicity  # type: ignore[assignment]
 
-        energies = []
-        electronic_strucs = []
+        energies: List[Tuple[Optional[float], str]] = []
+        electronic_strucs: List[Optional[str]] = []
+        stop_error: Optional[RuntimeError] = None
 
         # Loop over all conformers in the molecule vault
         for conf_idx, mol in enumerate(self.mol_vault.mol_objects):
@@ -140,6 +150,7 @@ class BaseSinglePoint(_BaseMixin):
             # Initialize results as None
             energy = None
             molden_file_path = None
+            error: Optional[Exception] = None
 
             # Skip conformers that were labeled as invalid
             if self.mol_vault.is_valid[conf_idx] is False and state == "n":
@@ -169,18 +180,37 @@ class BaseSinglePoint(_BaseMixin):
                         write_el_struc_file=write_el_struc_file
                     )
                 except Exception as e:
+                    error = e
                     _errmsg = (
                         f"Single-point energy calculation with {self.engine_name} failed for "
                         f"conformer with index {conf_idx} for state '{state}': {str(e)}."
                     )
                     if _errmsg.endswith(".."):
                         _errmsg = _errmsg[:-1]
+                    if stop_on_error is True:
+                        _errmsg += (
+                            " The calculation was stopped: the remaining conformers were not "
+                            "processed and, like the failed conformer, have no energy and "
+                            "electronic structure data. This behavior can be changed by setting "
+                            "the 'stop_on_error' parameter to False."
+                        )
                     logging.error(f"'{_namespace}' | {_loc}()\n{_errmsg}")
 
             # Collect and store data
             energies.append((energy, "kj_mol"))
             electronic_strucs.append(molden_file_path)
 
+            # Leave and clean up the working directory (also in case of an error)
             self._save_output_files()
 
-        return (energies, electronic_strucs)
+            if error is not None and stop_on_error is True:
+                stop_error = RuntimeError(f"{_loc}(): {_errmsg}")
+                stop_error.__cause__ = error
+                break
+
+        # Fill in None for all conformers that were not processed
+        _n_missing = len(self.mol_vault.mol_objects) - len(energies)
+        energies.extend([(None, "kj_mol")] * _n_missing)
+        electronic_strucs.extend([None] * _n_missing)
+
+        return (energies, electronic_strucs, stop_error)

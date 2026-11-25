@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections import Counter
 from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
@@ -196,8 +197,11 @@ def test_run(
 
     sp_kwargs = {"mol_vault": mol_vault, "_keep_output_files": True}
     dummy = SPClass(**sp_kwargs)
-    energies, electronic_strucs = dummy.run(state=state, write_el_struc_file=write_el_struc_file)
+    energies, electronic_strucs, stop_error = dummy.run(
+        state=state, stop_on_error=True, write_el_struc_file=write_el_struc_file
+    )
 
+    assert stop_error is None
     assert len(energies) == len(_is_valid_list)
     assert len(electronic_strucs) == len(_is_valid_list)
 
@@ -233,7 +237,7 @@ def test_run2(
     fetch_data_file: Callable[[str], str],
     fresh_mol_vault: Callable[[List[str], str, str], MolVault],
 ) -> None:
-    """Test for the ``run()`` method: failure in calculate."""
+    """Test for the ``run()`` method: failure in calculate with ``stop_on_error=False``."""
     # Preprocess input file
     input_file = fetch_data_file(file_name="clopidogrel.xyz")
     mol_inputs, error_message = read_xyz_file(file_path=input_file)
@@ -250,8 +254,11 @@ def test_run2(
 
     sp_kwargs = {"mol_vault": mol_vault, "_keep_output_files": True}
     dummy = SPClassFailure(**sp_kwargs)
-    energies, electronic_strucs = dummy.run(state="n", write_el_struc_file=True)
+    energies, electronic_strucs, stop_error = dummy.run(
+        state="n", stop_on_error=False, write_el_struc_file=True
+    )
 
+    assert stop_error is None
     assert len(energies) == 7
     assert len(electronic_strucs) == 7
     assert energies == [
@@ -277,3 +284,55 @@ def test_run2(
     # Check logging
     assert len(caplog.records) > 0
     assert any(record.levelno == logging.ERROR for record in caplog.records)
+
+
+@pytest.mark.base_single_point_run
+def test_run3(
+    caplog: pytest.LogCaptureFixture,
+    fetch_data_file: Callable[[str], str],
+    fresh_mol_vault: Callable[[List[str], str, str], MolVault],
+) -> None:
+    """Test for the ``run()`` method: failure in calculate with ``stop_on_error=True``."""
+    # Preprocess input file
+    input_file = fetch_data_file(file_name="clopidogrel.xyz")
+    mol_inputs, error_message = read_xyz_file(file_path=input_file)
+    assert error_message is None
+
+    # Arrange mol vault
+    mol_vault = fresh_mol_vault(mol_inputs=mol_inputs, namespace="irrelevant", input_type="xyz")
+    mol_vault.initialize_mol()
+    mol_vault.get_elements()
+    mol_vault.charge = "irrelevant"
+    mol_vault.multiplicity = "irrelevant"
+    mol_vault.is_valid = [True] * 7
+    assert all([isinstance(mol, Chem.rdchem.Mol) for mol in mol_vault.mol_objects])
+
+    _init_cwd = os.getcwd()
+
+    sp_kwargs = {"mol_vault": mol_vault, "_keep_output_files": True}
+    dummy = SPClassFailure(**sp_kwargs)
+    energies, electronic_strucs, stop_error = dummy.run(
+        state="n", stop_on_error=True, write_el_struc_file=True
+    )
+
+    # The loop is stopped at the failed conformer (index 1)
+    assert dummy.sp_calculate_counter == 2
+
+    # Successful data is kept, the failed and all following conformers are None
+    assert energies == [(-12579.548, "kj_mol")] + [(None, "kj_mol")] * 6
+    assert electronic_strucs == ["dummy/file/path/el_struc.molden"] + [None] * 6
+
+    # The error is returned (not raised) and chained to the original exception
+    assert isinstance(stop_error, RuntimeError)
+    assert "conformer with index 1 for state 'n'" in str(stop_error)
+    assert "'stop_on_error'" in str(stop_error)
+    assert isinstance(stop_error.__cause__, RuntimeError)
+    assert str(stop_error.__cause__) == "Simulated failure in calculate() method."
+
+    # Working directory is unchanged
+    assert os.getcwd() == _init_cwd
+
+    # Check logging
+    _error_records = [record for record in caplog.records if record.levelno == logging.ERROR]
+    assert len(_error_records) == 1
+    assert "'stop_on_error'" in _error_records[0].message

@@ -252,11 +252,7 @@ def test_attach_smiles4(
     assert f.mol_vault is None
 
     input_string = fetch_data_file(file_name="clopidogrel-conf_01.xyz")
-    f.read_input(
-        input_value=input_string,
-        namespace="irrelevant",
-        input_format="file"
-    )
+    f.read_input(input_value=input_string, namespace="irrelevant", input_format="file")
     assert f.mol_vault is not None
     assert f.mol_vault.smiles is None
     assert f.mol_vault.bonds_determined is False

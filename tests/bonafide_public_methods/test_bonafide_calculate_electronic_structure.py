@@ -110,7 +110,9 @@ def test_calculate_electronic_structure(
     if engine_name.strip().lower() == "xtb":
         _patch_path = "bonafide.utils.sp_xtb.XtbSP.run"
 
-    mock = mocker.patch(_patch_path, return_value=(_mocked_energies, _mocked_electronic_strucs))
+    mock = mocker.patch(
+        _patch_path, return_value=(_mocked_energies, _mocked_electronic_strucs, None)
+    )
 
     # Calculate electronic structure
     f.calculate_electronic_structure(engine=engine_name, redox=redox_state)
@@ -121,7 +123,7 @@ def test_calculate_electronic_structure(
     assert f.mol_vault.is_valid == _mocked_is_valid_list
 
     if redox_state == "n":
-        mock.assert_called_with(state=redox_state, write_el_struc_file=True)
+        mock.assert_called_with(state=redox_state, stop_on_error=False, write_el_struc_file=True)
         assert mock.call_count == 1
 
         assert f.mol_vault.energies_n == _mocked_energies
@@ -139,7 +141,10 @@ def test_calculate_electronic_structure(
 
     elif redox_state == "n-1":
         mock.assert_has_calls(
-            [call(state="n", write_el_struc_file=True), call(state="n-1", write_el_struc_file=True)]
+            [
+                call(state="n", stop_on_error=False, write_el_struc_file=True),
+                call(state="n-1", stop_on_error=False, write_el_struc_file=True),
+            ]
         )
         assert mock.call_count == 2
 
@@ -158,7 +163,10 @@ def test_calculate_electronic_structure(
 
     elif redox_state == "n+1":
         mock.assert_has_calls(
-            [call(state="n", write_el_struc_file=True), call(state="n+1", write_el_struc_file=True)]
+            [
+                call(state="n", stop_on_error=False, write_el_struc_file=True),
+                call(state="n+1", stop_on_error=False, write_el_struc_file=True),
+            ]
         )
         assert mock.call_count == 2
 
@@ -178,9 +186,9 @@ def test_calculate_electronic_structure(
     elif redox_state == "all":
         mock.assert_has_calls(
             [
-                call(state="n", write_el_struc_file=True),
-                call(state="n-1", write_el_struc_file=True),
-                call(state="n+1", write_el_struc_file=True),
+                call(state="n", stop_on_error=False, write_el_struc_file=True),
+                call(state="n-1", stop_on_error=False, write_el_struc_file=True),
+                call(state="n+1", stop_on_error=False, write_el_struc_file=True),
             ]
         )
         assert mock.call_count == 3
@@ -268,14 +276,16 @@ def test_calculate_electronic_structure3(
 
 @pytest.mark.calculate_electronic_structure
 @pytest.mark.parametrize(
-    "engine, redox, _set_charge, _set_multiplicity, _engine_name, _error_type",
+    "engine, redox, stop_on_error, _set_charge, _set_multiplicity, _engine_name, _error_type",
     [
-        (["xtb", "psi4"], "n", True, True, "psi4", TypeError),
-        ("xtb", False, True, True, "xtb", TypeError),
-        ("xtb", "n", False, True, "xtb", ValueError),
-        ("psi4", "n", True, False, "psi4", ValueError),
-        ("the-real-xtb", "n+1", True, True, "xtb", ValueError),
-        ("xtb", "n_1", True, True, "xtb", ValueError),
+        (["xtb", "psi4"], "n", True, True, True, "psi4", TypeError),
+        ("xtb", False, True, True, True, "xtb", TypeError),
+        ("xtb", "n", "yes", True, True, "xtb", TypeError),
+        ("psi4", "all", 1, True, True, "psi4", TypeError),
+        ("xtb", "n", True, False, True, "xtb", ValueError),
+        ("psi4", "n", True, True, False, "psi4", ValueError),
+        ("the-real-xtb", "n+1", True, True, True, "xtb", ValueError),
+        ("xtb", "n_1", True, True, True, "xtb", ValueError),
     ],
 )
 def test_calculate_electronic_structure4(
@@ -286,6 +296,7 @@ def test_calculate_electronic_structure4(
     fetch_data_file: Callable[[str], str],
     engine: Any,
     redox: Any,
+    stop_on_error: Any,
     _set_charge: bool,
     _set_multiplicity: bool,
     _engine_name: str,
@@ -340,7 +351,7 @@ def test_calculate_electronic_structure4(
 
     # Calculate electronic structure
     with pytest.raises(_error_type):
-        f.calculate_electronic_structure(engine=engine, redox=redox)
+        f.calculate_electronic_structure(engine=engine, redox=redox, stop_on_error=stop_on_error)
     mock.assert_not_called()
 
     assert f.mol_vault.is_valid == [True]
@@ -438,7 +449,7 @@ def test_calculate_electronic_structure5(
 
     mock = mocker.patch(
         "bonafide.utils.sp_xtb.XtbSP.run",
-        return_value=(_mocked_energies, _mocked_electronic_strucs),
+        return_value=(_mocked_energies, _mocked_electronic_strucs, None),
     )
 
     # Calculate electronic structure
@@ -447,7 +458,7 @@ def test_calculate_electronic_structure5(
     # Check mol vault
     assert f.mol_vault.is_valid == _expected_pruning_mask
 
-    mock.assert_called_with(state="n", write_el_struc_file=True)
+    mock.assert_called_with(state="n", stop_on_error=False, write_el_struc_file=True)
     assert mock.call_count == 1
 
     assert f.mol_vault.energies_n == _mocked_energies
@@ -671,7 +682,7 @@ def test_calculate_electronic_structure6(
         _patch_path = "bonafide.utils.sp_xtb.XtbSP.run"
     mock = mocker.patch(
         _patch_path,
-        return_value=(_mocked_energies, _mocked_electronic_strucs),
+        return_value=(_mocked_energies, _mocked_electronic_strucs, None),
     )
 
     # Calculate electronic structure
@@ -817,6 +828,204 @@ def test_calculate_electronic_structure7(
     # Check logs
     assert len(caplog.records) > 0
     assert all(record.levelno == logging.INFO for record in caplog.records)
+
+    # Clean up
+    shutil.rmtree(path="irrelevant_out_dir")
+    clean_up_logfile()
+
+
+@pytest.mark.calculate_electronic_structure_with_multiwfn
+@pytest.mark.parametrize(
+    "engine_name, redox_state, _failing_state, _failed_idx",
+    [
+        ("xtb", "n", "n", 1),
+        ("psi4", "n", "n", 0),
+        ("xtb", "all", "n-1", 3),
+        ("psi4", "n+1", "n+1", 6),
+    ],
+)
+def test_calculate_electronic_structure8(
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    fresh_featurizer: AtomBondFeaturizer,
+    clean_up_logfile: Callable[[str], None],
+    fetch_data_file: Callable[[str], str],
+    engine_name: str,
+    redox_state: str,
+    _failing_state: str,
+    _failed_idx: int,
+) -> None:
+    """Test for the ``calculate_electronic_structure()`` method: the calculation is stopped
+    because of an error for one conformer (``stop_on_error=True``). The available data is
+    attached before the error is raised.
+    """
+    # Setup featurizer and read input
+    f = fresh_featurizer()
+    assert f.mol_vault is None
+
+    input_string = fetch_data_file(file_name="clopidogrel.xyz")
+    f.read_input(
+        input_value=input_string,
+        namespace="irrelevant",
+        input_format="file",
+        output_directory="irrelevant_out_dir",
+    )
+    f.set_charge(charge=0)
+    f.set_multiplicity(multiplicity=1)
+    assert f.mol_vault is not None
+    assert f.mol_vault.is_valid == [True] * 7
+
+    _init_cwd = os.getcwd()
+
+    # Mock the actual single-point energy calculation; the failing state returns the successful
+    # data, None for the failed and all following conformers, and the error that stopped it
+    _full_electronic_strucs = [
+        fetch_data_file(file_name=f"clopidogrel-conf_0{idx}.molden") for idx in range(7)
+    ]
+    _full_energies = [(-123.123 - idx, "kj_mol") for idx in range(7)]
+    _n_missing = 7 - _failed_idx
+    _partial_energies = _full_energies[:_failed_idx] + [(None, "kj_mol")] * _n_missing
+    _partial_electronic_strucs = _full_electronic_strucs[:_failed_idx] + [None] * _n_missing
+
+    _stop_error = RuntimeError("Simulated stop of the electronic structure calculation.")
+    _stop_error.__cause__ = ValueError("Simulated engine failure.")
+
+    def _mocked_run(
+        state: str, stop_on_error: bool, write_el_struc_file: bool
+    ) -> Tuple[List[Tuple[Optional[float], str]], List[Optional[str]], Optional[RuntimeError]]:
+        if state == _failing_state:
+            return _partial_energies, _partial_electronic_strucs, _stop_error
+        return _full_energies, _full_electronic_strucs, None
+
+    if engine_name == "psi4":
+        _patch_path = "bonafide.utils.sp_psi4.Psi4SP.run"
+    if engine_name == "xtb":
+        _patch_path = "bonafide.utils.sp_xtb.XtbSP.run"
+    mock = mocker.patch(_patch_path, side_effect=_mocked_run)
+    prune_spy = mocker.spy(f.mol_vault, "prune_ensemble_by_energy")
+
+    # Pruning would only be done for state "n", so it is only requested if "n" fails
+    _prune_by_energy = (5, "kj/mol") if _failing_state == "n" else None
+
+    # Calculate electronic structure
+    with pytest.raises(RuntimeError, match="Simulated stop") as exc_info:
+        f.calculate_electronic_structure(
+            engine=engine_name,
+            redox=redox_state,
+            prune_by_energy=_prune_by_energy,
+            stop_on_error=True,
+        )
+    assert exc_info.value is _stop_error
+    assert isinstance(exc_info.value.__cause__, ValueError)
+
+    # Only the states up to and including the failing state were calculated
+    _all_states = {"n": ["n"], "n-1": ["n", "n-1"], "n+1": ["n", "n+1"], "all": ["n", "n-1", "n+1"]}
+    _states = _all_states[redox_state]
+    _calculated_states = _states[: _states.index(_failing_state) + 1]
+    assert mock.call_args_list == [
+        call(state=state, stop_on_error=True, write_el_struc_file=True)
+        for state in _calculated_states
+    ]
+
+    # Pruning is not performed because the error is raised before
+    assert prune_spy.call_count == 0
+
+    # Check mol vault
+    assert f.mol_vault.is_valid == [True] * _failed_idx + [False] * _n_missing
+
+    _vault_attrs = {
+        "n": ("energies_n", "electronic_strucs_n"),
+        "n-1": ("energies_n_minus1", "electronic_strucs_n_minus1"),
+        "n+1": ("energies_n_plus1", "electronic_strucs_n_plus1"),
+    }
+    for state, (energies_attr, el_strucs_attr) in _vault_attrs.items():
+        if state == _failing_state:
+            assert getattr(f.mol_vault, energies_attr) == _partial_energies
+            assert getattr(f.mol_vault, el_strucs_attr) == _partial_electronic_strucs
+        elif state in _calculated_states:
+            assert getattr(f.mol_vault, energies_attr) == _full_energies
+            assert getattr(f.mol_vault, el_strucs_attr) == _full_electronic_strucs
+        else:
+            assert getattr(f.mol_vault, energies_attr) == []
+            assert getattr(f.mol_vault, el_strucs_attr) == []
+
+    # Charge, multiplicity, and working directory are restored
+    assert f.mol_vault.charge == 0
+    assert f.mol_vault.multiplicity == 1
+    assert os.getcwd() == _init_cwd
+
+    # Check logs
+    assert len(caplog.records) > 0
+    assert any(
+        record.levelno == logging.WARNING and "probably not intended" in record.message
+        for record in caplog.records
+    )
+
+    # Clean up
+    shutil.rmtree(path="irrelevant_out_dir")
+    clean_up_logfile()
+
+
+@pytest.mark.calculate_electronic_structure_with_multiwfn
+@pytest.mark.parametrize("engine_name", ["xtb", "psi4"])
+def test_calculate_electronic_structure9(
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    fresh_featurizer: AtomBondFeaturizer,
+    clean_up_logfile: Callable[[str], None],
+    fetch_data_file: Callable[[str], str],
+    engine_name: str,
+) -> None:
+    """Test for the ``calculate_electronic_structure()`` method: the calculation continues after
+    an error for a conformer (``stop_on_error=False``, default) and no error is raised.
+    """
+    # Setup featurizer and read input
+    f = fresh_featurizer()
+    assert f.mol_vault is None
+
+    input_string = fetch_data_file(file_name="clopidogrel.xyz")
+    f.read_input(
+        input_value=input_string,
+        namespace="irrelevant",
+        input_format="file",
+        output_directory="irrelevant_out_dir",
+    )
+    f.set_charge(charge=0)
+    f.set_multiplicity(multiplicity=1)
+    assert f.mol_vault is not None
+    assert f.mol_vault.is_valid == [True] * 7
+
+    # Mock the actual single-point energy calculation with failures for conformers 2 and 4
+    _mocked_electronic_strucs = [
+        None if idx in [2, 4] else fetch_data_file(file_name=f"clopidogrel-conf_0{idx}.molden")
+        for idx in range(7)
+    ]
+    _mocked_energies = [
+        (None, "kj_mol") if idx in [2, 4] else (-123.123, "kj_mol") for idx in range(7)
+    ]
+
+    if engine_name == "psi4":
+        _patch_path = "bonafide.utils.sp_psi4.Psi4SP.run"
+    if engine_name == "xtb":
+        _patch_path = "bonafide.utils.sp_xtb.XtbSP.run"
+    mock = mocker.patch(
+        _patch_path, return_value=(_mocked_energies, _mocked_electronic_strucs, None)
+    )
+
+    # Calculate electronic structure
+    f.calculate_electronic_structure(engine=engine_name, redox="n")
+
+    mock.assert_called_once_with(state="n", stop_on_error=False, write_el_struc_file=True)
+
+    # Check mol vault
+    assert f.mol_vault.is_valid == [True, True, False, True, False, True, True]
+    assert f.mol_vault.energies_n == _mocked_energies
+    assert f.mol_vault.energies_n_read is True
+    assert f.mol_vault.electronic_strucs_n == _mocked_electronic_strucs
+
+    # Check logs
+    assert len(caplog.records) > 0
+    assert all(record.levelno != logging.ERROR for record in caplog.records)
 
     # Clean up
     shutil.rmtree(path="irrelevant_out_dir")

@@ -2,11 +2,11 @@
 
 ![image](docs/_static/doc_image_light.png)
 
-![Version Badge](https://img.shields.io/badge/Version-0.2.4-%231d7b87)
-[![DOI](https://img.shields.io/badge/DOI-10.26434/chemrxiv.15001386/v1-%231d7b87)](https://doi.org/10.26434/chemrxiv.15001386/v1)
+![Version Badge](https://img.shields.io/badge/Version-1.0.0-%231d7b87)
+[![DOI](https://img.shields.io/badge/DOI-10.1186/s13321--026--01283--6-%231d7b87)](https://doi.org/10.1186/s13321-026-01283-6)
 ![Maturity](https://img.shields.io/badge/Maturity%20level-ML--1-%231d7b87)
-![Mypy](https://github.com/MolecularAI/atom-bond-featurizer/actions/workflows/mypy_analysis.yml/badge.svg?branch=main)
-![Pytest-quick](https://github.com/MolecularAI/atom-bond-featurizer/actions/workflows/pytest_analysis.yml/badge.svg?branch=main)
+![Mypy](https://github.com/MolecularAI/atom-bond-featurizer/actions/workflows/mypy_analysis.yaml/badge.svg?branch=main)
+![Pytest-quick](https://github.com/MolecularAI/atom-bond-featurizer/actions/workflows/pytest_analysis.yaml/badge.svg?branch=main)
 ![Test coverage](https://img.shields.io/badge/Test%20coverage-93%25-success)
 [![Documentation](https://img.shields.io/website?url=https%3A%2F%2Fmolecularai.github.io%2Fatom-bond-featurizer%2F&label=Documentation&up_message=online&down_message=offline)](https://molecularai.github.io/atom-bond-featurizer/)
 
@@ -27,19 +27,7 @@ For any further details, please visit the
   py3Dmol, qmdesc, rdkit, scipy
 - Optional external programs: Multiwfn, Psi4, xtb
 
-## Installation
-
-```shell
-git clone https://github.com/MolecularAI/atom-bond-featurizer.git
-
-cd atom-bond-featurizer
-pixi install                          # BONAFIDE with all dependencies (incl. Psi4, xtb, qmdesc, kallisto)
-pixi install -e alfabet-env           # optional: separate environment for ALFABET
-pixi run check_bonafide_installation  # check the installation
-```
-
-qmdesc is installed by default; use the `no-qmdesc` environment (`pixi install -e no-qmdesc`) to
-leave it out. Multiwfn (version 2026.9.20) must be installed separately. For further details, please see the
+For further details, please see the
 [installation guide](https://molecularai.github.io/atom-bond-featurizer/installation.html).
 
 ## Quick Start
@@ -71,4 +59,4 @@ For more details and examples, see the [examples](examples/) folder and the
 - Matt Ball
 
 For any further details, please refer to our
-[preprint](https://chemrxiv.org/doi/full/10.26434/chemrxiv.15001386/v1).
+[publication](https://link.springer.com/article/10.1186/s13321-026-01283-6).

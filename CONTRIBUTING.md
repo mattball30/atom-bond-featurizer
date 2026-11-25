@@ -10,14 +10,14 @@ Contributions to the projects are very welcome either through
 ## Environment
 
 For development work, BONAFIDE should be installed in its development environment, which is
-managed with [pixi](https://pixi.sh). Multiwfn (version 2026.9.20) must be installed separately as
+managed with [pixi](https://pixi.sh). Multiwfn (version 2026.10.18) must be installed separately as
 described in the
 [installation guide](https://molecularai.github.io/atom-bond-featurizer/installation.html).
 
 ```shell
 pixi install -e dev
 pixi install -e alfabet-env
-pixi run -e dev check_bonafide_installation
+pixi run -e dev python check_bonafide_installation.py
 ```
 
 The dependencies are defined in `pyproject.toml` and locked in `pixi.lock`. After changing
@@ -25,20 +25,6 @@ dependencies, update the lock file with `pixi lock` and commit both files.
 
 The `dev` environment includes `ipykernel`, so it can be selected as the kernel for the notebooks in
 `examples/` (the `.pixi/envs/dev/bin/python` interpreter).
-
-The following tasks are available in the `dev` environment:
-
-```shell
-pixi run -e dev check_bonafide_installation  # check that all dependencies are installed
-pixi run -e dev test                         # full test suite (requires Multiwfn and alfabet-env)
-pixi run -e dev test-quick                   # test suite as run in the CI (no Multiwfn required)
-pixi run -e dev coverage                     # test suite with coverage report
-pixi run -e dev mypy                         # static type checking
-pixi run -e dev format                       # ruff formatting
-pixi run -e dev format-check                 # ruff format check
-pixi run -e dev docstring-coverage           # docstring coverage analysis
-pixi run -e dev docs                         # build the documentation
-```
 
 ## Code style and formatting
 
@@ -53,6 +39,7 @@ pixi run -e dev mypy
 configured as specified in `ruff.toml`.
 
 ```shell
+pixi run -e dev format-check
 pixi run -e dev format
 ```
 
@@ -108,5 +95,12 @@ at least one example. This takes around 30 min.
 Test coverage can also be reported.
 
 ```shell
-pixi run -e dev coverage
+pixi run -e dev test-coverage
+```
+
+It is also possible to run a slightly reduced test suite as it is done in CI/CD. It excludes for
+example Multiwfn as a required dependency for running the tests.
+
+```shell
+pixi run -e dev test-quick
 ```
